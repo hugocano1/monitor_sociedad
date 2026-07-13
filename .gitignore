@@ -1,0 +1,30 @@
+# Entorno Virtual de Python
+.venv/
+env/
+venv/
+ENV/
+
+# Variables de Entorno y API Keys
+api_keys.env
+.env
+*.env
+
+# Credenciales de Servicio de Firebase
+credenciales_firebase.json
+
+# Archivos de caché y compilación de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Configuración de editores e IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
