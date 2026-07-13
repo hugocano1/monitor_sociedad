@@ -173,10 +173,24 @@ def consultar_rss(url_feed: str, nombre_fuente: str, palabra_clave: str = "", ma
 def buscar_documentos_remotos(fuente: str, palabra_clave: str = "", limite: int = 3) -> List[Dict]:
     """
     Punto de entrada unificado para buscar documentos e informes en la web.
+    Soporta buscar en una fuente específica o en "todos".
     """
     fuente = fuente.lower().strip()
     
-    if "arxiv" in fuente:
+    if fuente == "todos" or fuente == "all":
+        print("[INGEST] Iniciando búsqueda consolidada en todas las fuentes...")
+        resultados = []
+        # 1. arXiv
+        resultados.extend(consultar_arxiv(palabra_clave, max_resultados=limite))
+        # 2. MIT Technology Review
+        feed_mit = "https://www.technologyreview.com/feed/"
+        resultados.extend(consultar_rss(feed_mit, "MIT Technology Review", palabra_clave, max_resultados=limite))
+        # 3. WEF
+        feed_wef = "https://www.weforum.org/agenda/feed"
+        resultados.extend(consultar_rss(feed_wef, "World Economic Forum (WEF)", palabra_clave, max_resultados=limite))
+        return resultados
+        
+    elif "arxiv" in fuente:
         return consultar_arxiv(palabra_clave, max_resultados=limite)
     elif "mit" in fuente:
         feed_url = "https://www.technologyreview.com/feed/"

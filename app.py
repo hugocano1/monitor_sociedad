@@ -551,7 +551,7 @@ with tab_ingesta_automatica:
     with col_f1:
         fuente_opcion = st.selectbox(
             "Selecciona la fuente de datos:",
-            ["arXiv (Papers de Inteligencia Artificial - cs.AI)", "World Economic Forum (WEF - Feed de Agenda)", "MIT Technology Review (Feed General)"]
+            ["Buscar en todas las fuentes (Consolidado)", "arXiv (Papers de Inteligencia Artificial - cs.AI)", "World Economic Forum (WEF - Feed de Agenda)", "MIT Technology Review (Feed General)"]
         )
     with col_f2:
         palabra_clave_busqueda = st.text_input("Filtrar por palabra clave (opcional):", placeholder="ej. post-quantum, agent, automation...")
@@ -563,7 +563,9 @@ with tab_ingesta_automatica:
     if btn_rastrear:
         # Mapear opción seleccionada
         fuente_key = ""
-        if "arxiv" in fuente_opcion.lower():
+        if "todas" in fuente_opcion.lower() or "consolidado" in fuente_opcion.lower():
+            fuente_key = "todos"
+        elif "arxiv" in fuente_opcion.lower():
             fuente_key = "arxiv"
         elif "wef" in fuente_opcion.lower() or "forum" in fuente_opcion.lower():
             fuente_key = "wef"

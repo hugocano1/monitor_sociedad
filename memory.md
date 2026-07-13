@@ -20,6 +20,7 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   6. **Prueba Completa Exitosa**: Ejecución satisfactoria de extremo a extremo que generó un análisis detallado bajo la narrativa de "Transferencia de Riqueza" con extracción de 3 URLs oficiales e inserción exitosa en Firestore con ID de documento: `VuToZM2Y0iODqN92hqyR`.
   7. **Interfaz Web Streamlit (v1.2)**: Creación de [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) que permite visualizar reportes directamente desde Firestore, ingresar nuevos análisis, e invocar a Gemini 3.5 Flash para generar guiones literarios completos de 10 minutos con marcadores de producción (Voz en Off, B-Roll, SFX) optimizados para la retención del algoritmo de YouTube.
   8. **Ingesta Automática de Fuentes (v1.3)**: Implementación de [ingest.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/ingest.py), un motor que rastrea automáticamente APIs públicas y RSS feeds (arXiv, WEF, MIT) para extraer nuevos reportes e informes sin intervención manual, procesarlos en lote con la IA de Gemini e insertarlos en Firestore.
+  9. **Búsqueda Consolidada Multifuente (v1.4)**: Añadido soporte en `ingest.py` y `app.py` para consultar simultáneamente en arXiv, MIT y WEF con un solo clic, automatizando por completo la recopilación de informes de inteligencia.
 
 ---
 
