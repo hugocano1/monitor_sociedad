@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 import streamlit as st
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -629,33 +630,49 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 </html>"""
 
 def render_teleprompter_button(narracion_limpia: str, titulo: str):
-    """Renderiza un botón interactivo que abre el Teleprompter en una ventana limpia e independiente."""
+    """Renderiza la experiencia de Teleprompter libre de errores de sintaxis en PC y celulares."""
     html_content = generar_html_teleprompter_standalone(narracion_limpia, titulo)
-    safe_json = json.dumps({"html": html_content, "title": titulo})
+    b64_html = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
     
     component_code = f"""
-    <div style="font-family: sans-serif; margin-top: 10px;">
+    <div style="font-family: system-ui, -apple-system, sans-serif; margin: 5px 0;">
         <button id="open-prompter-btn" style="
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white; border: none; padding: 12px 24px; border-radius: 8px;
+            color: white; border: none; padding: 14px 24px; border-radius: 10px;
             font-weight: 700; font-size: 15px; cursor: pointer; width: 100%;
             display: flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: transform 0.1s;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); transition: all 0.2s ease;
         ">
-            🚀 Abrir Studio Teleprompter (Ventana Limpia con Cámara)
+            🚀 Abrir Studio Teleprompter (Nueva Ventana / Celular y PC)
         </button>
         <script>
-            const data = {safe_json};
+            const b64Data = "{b64_html}";
             document.getElementById('open-prompter-btn').addEventListener('click', () => {{
-                const blob = new Blob([data.html], {{ type: 'text/html;charset=utf-8' }});
-                const url = URL.createObjectURL(blob);
-                const win = window.open(url, '_blank', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
-                if (!win) alert('Por favor permite ventanas emergentes (popups) en tu navegador para abrir el Teleprompter.');
+                try {{
+                    const binaryStr = atob(b64Data);
+                    const bytes = new Uint8Array(binaryStr.length);
+                    for (let i = 0; i < binaryStr.length; i++) {{
+                        bytes[i] = binaryStr.charCodeAt(i);
+                    }}
+                    const blob = new Blob([bytes], {{ type: 'text/html;charset=utf-8' }});
+                    const url = URL.createObjectURL(blob);
+                    const win = window.open(url, '_blank');
+                    if (!win) {{
+                        alert('Tu navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes para este sitio o usa la opción desplegable de abajo.');
+                    }}
+                }} catch(e) {{
+                    alert("Error al procesar Teleprompter: " + e.message);
+                }}
             }});
         </script>
     </div>
     """
-    components.html(component_code, height=65)
+    components.html(component_code, height=70)
+    
+    # Visor integrado alternativo por si el navegador móvil bloquea ventanas emergentes
+    with st.expander("👁️ O abrir Visor Integrado de Teleprompter en Pantalla Completa", expanded=False):
+        st.info("Presiona el botón '⛶ Pantalla Completa' dentro del visor para activar la cámara a pantalla completa sin distracciones.")
+        components.html(html_content, height=650)
 
 # Mantener compatibilidad con la función anterior
 def generar_guion_youtube(analisis: dict) -> str:
