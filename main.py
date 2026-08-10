@@ -106,8 +106,10 @@ def inicializar_firebase() -> firestore.firestore.Client:
 
     # Prevenir doble inicialización de la app
     if not firebase_admin._apps:
-        firebase_admin.initialize_app(cred)
+        app = firebase_admin.initialize_app(cred)
         print("[FIREBASE] Conexión establecida con éxito.")
+    else:
+        app = firebase_admin.get_app()
     
     # Obtener el ID de la base de datos de las variables de entorno o secrets
     db_id = os.getenv("FIREBASE_DATABASE_ID")
@@ -118,14 +120,29 @@ def inicializar_firebase() -> firestore.firestore.Client:
     except Exception:
         pass
 
+    # Extraer project_id y credenciales explícitas para evitar error de autodetección de proyecto en la nube
+    project_id = getattr(cred, "project_id", None) or getattr(app, "project_id", None)
+    google_creds = None
+    if cred and hasattr(cred, "get_credential"):
+        try:
+            google_creds = cred.get_credential()
+        except Exception:
+            pass
+
     from google.cloud import firestore as gcloud_firestore
     
+    kwargs = {}
+    if project_id:
+        kwargs["project"] = project_id
+    if google_creds:
+        kwargs["credentials"] = google_creds
     if db_id and str(db_id).strip() and str(db_id) != "(default)":
-        print(f"[FIREBASE] Utilizando base de datos específica: '{db_id}'")
-        return gcloud_firestore.Client(database=str(db_id).strip())
-    
-    print("[FIREBASE] Utilizando base de datos predeterminada '(default)'")
-    return gcloud_firestore.Client()
+        kwargs["database"] = str(db_id).strip()
+        print(f"[FIREBASE] Conectado a Firestore. Base de datos: '{db_id}', Proyecto: '{project_id}'")
+    else:
+        print(f"[FIREBASE] Conectado a Firestore. Base de datos: '(default)', Proyecto: '{project_id}'")
+
+    return gcloud_firestore.Client(**kwargs)
 
 # =====================================================================
 # 3. Consulta a la API de Gemini 1.5 Pro
