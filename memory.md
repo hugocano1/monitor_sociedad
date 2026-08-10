@@ -31,6 +31,7 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   4. **Categorización de Ingesta**: Clasificación de fuentes por categorías (`Universidades & Ciencia`, `Prensa Tech Global`, `Organismos & Coyuntura Global`).
   5. **Compatibilidad 100% Cloud**: Adaptación de `inicializar_firebase()` y `analizar_reporte_con_gemini()` en [main.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/main.py) y [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) para resolver credenciales e API keys desde `st.secrets` y variables de entorno crudas (`FIREBASE_CREDENTIALS_JSON`), permitiendo desplegar la app 24/7 en **Streamlit Community Cloud** sin depender de ejecutar `streamlit run` en la PC local.
   6. **Humanización y Enfoque Constructivo Positivo**: Inyección de directrices estrictas anti-IA (prohibiendo muletillas como 'En un mundo donde...', 'Sumérgete en...') y garantizando una perspectiva equilibrada de optimismo tecnológico que celebre los proyectos e investigaciones que hacen crecer positivamente a la sociedad y mejoran la vida humana.
+  7. **Studio Teleprompter Interactivo**: Implementación de un visor de Teleprompter en ventana limpia e independiente que solicita permisos de webcam (laptop/celular), superpone el texto narrativo filtrado (`extraer_narracion_limpia`), ofrece atajos de teclado (`Barra Espaciadora`, `Flechas`), ajuste de velocidad, tamaño de fuente, modo espejo y alternador de formato 16:9 / 9:16. Incluye exportación en `.txt` y copiado fácil para Google Drive/Docs.
 
 ---
 

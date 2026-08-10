@@ -407,6 +407,256 @@ def generar_guion_short_paquete(analisis: dict) -> dict:
             import time
             time.sleep(2)
 
+import re
+import html
+import streamlit.components.v1 as components
+
+def extraer_narracion_limpia(guion_texto: str) -> str:
+    """
+    Filtra y extrae únicamente el texto hablado (locución/voz en off)
+    eliminando indicaciones técnicas, prompts visuales, SFX y marcadores de producción.
+    """
+    if not guion_texto:
+        return ""
+    
+    lineas = guion_texto.split("\n")
+    narracion = []
+    
+    for linea in lineas:
+        l = linea.strip()
+        if not l:
+            continue
+        
+        # Omitir headers o secciones de apoyo técnico
+        if any(kw in l.upper() for kw in [
+            "APOYO VISUAL", "B-ROLL", "PROMPT IA", "EFECTO DE SONIDO", "SFX:", 
+            "CORTE VISUAL", "CAPÍTULO", "TITULOS", "DESCRIPCIÓN", "ETIQUETAS",
+            "HASHTAGS", "---", "###", "##", "# ", "VOZ EN OFF (LOCUCIÓN)"
+        ]):
+            continue
+            
+        # Extraer locución si contiene prefijo de voz
+        if "VOZ EN OFF:" in l.upper() or "VO:" in l.upper():
+            clean = re.sub(r'^(VOZ EN OFF|VO|🎙️ VOZ EN OFF):\s*', '', l, flags=re.IGNORECASE).strip()
+            if clean:
+                narracion.append(clean)
+        else:
+            # Si es texto plano de locución (sin etiquetas de producción ni corchetes)
+            if not l.startswith("[") and not l.startswith("*") and len(l) > 8:
+                narracion.append(l)
+                
+    return "\n\n".join(narracion) if narracion else guion_texto
+
+def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> str:
+    """Genera una aplicación web HTML5 independiente para Teleprompter libre de distracciones."""
+    parrafos_html = "".join([f"<p style='margin-bottom: 2rem;'>{html.escape(p)}</p>" for p in narracion_limpia.split("\n\n") if p.strip()])
+    
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Teleprompter - {html.escape(titulo)}</title>
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body, html {{ width: 100%; height: 100%; overflow: hidden; background: #09090b; font-family: system-ui, -apple-system, sans-serif; color: #fff; }}
+        
+        #webcam {{
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: 1; transform: scaleX(-1);
+        }}
+        #webcam.no-mirror {{ transform: none; }}
+        
+        #overlay {{
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.65); z-index: 2; pointer-events: none;
+            transition: background 0.3s ease;
+        }}
+        
+        #prompter-box {{
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 85%; max-width: 900px; height: 100%; z-index: 3;
+            overflow-y: scroll; scroll-behavior: auto;
+            padding: 45vh 2rem; scrollbar-width: none;
+        }}
+        #prompter-box::-webkit-scrollbar {{ display: none; }}
+        
+        #prompter-box.mode-916 {{
+            width: 90vw; max-width: 420px;
+            border-left: 2px dashed rgba(37, 99, 235, 0.4);
+            border-right: 2px dashed rgba(37, 99, 235, 0.4);
+        }}
+        
+        .script-content {{
+            font-size: 38px; font-weight: 700; line-height: 1.6;
+            text-align: center; color: #ffffff; text-shadow: 0 3px 12px rgba(0,0,0,0.95);
+            transition: font-size 0.2s ease;
+        }}
+        .script-content.mirrored {{
+            transform: scaleX(-1);
+        }}
+        
+        #controls-bar {{
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 10; background: rgba(18, 18, 24, 0.92); backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 50px;
+            padding: 10px 24px; display: flex; align-items: center; gap: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9); transition: opacity 0.4s ease;
+        }}
+        #controls-bar:hover, body.paused #controls-bar {{ opacity: 1; }}
+        body.playing #controls-bar {{ opacity: 0.25; }}
+
+        .btn {{
+            background: #2563eb; color: white; border: none; padding: 10px 18px;
+            border-radius: 30px; font-weight: 700; cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; gap: 6px; transition: background 0.2s;
+        }}
+        .btn:hover {{ background: #1d4ed8; }}
+        .btn-sec {{ background: rgba(255,255,255,0.15); }}
+        .btn-sec:hover {{ background: rgba(255,255,255,0.25); }}
+
+        .ctrl-group {{ display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ccc; }}
+        input[type="range"] {{ accent-color: #2563eb; cursor: pointer; }}
+    </style>
+</head>
+<body class="paused">
+    <video id="webcam" autoplay playsinline muted></video>
+    <div id="overlay"></div>
+    
+    <div id="prompter-box">
+        <div id="text-node" class="script-content">{parrafos_html}</div>
+    </div>
+    
+    <div id="controls-bar">
+        <button id="btn-toggle" class="btn">▶️ Iniciar (Espacio)</button>
+        
+        <div class="ctrl-group">
+            <label>⚡ Velocidad:</label>
+            <input type="range" id="speed" min="1" max="15" value="4">
+        </div>
+        
+        <div class="ctrl-group">
+            <label>🔠 Tamaño:</label>
+            <input type="range" id="fontsize" min="20" max="64" value="38">
+        </div>
+
+        <button id="btn-mode" class="btn btn-sec">🖥️ 16:9 / 9:16</button>
+        <button id="btn-mirror" class="btn btn-sec">🪞 Espejo</button>
+        <button id="btn-reset" class="btn btn-sec">🔄 Inicio</button>
+        <button id="btn-fullscreen" class="btn btn-sec">⛶ Pantalla Completa</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        navigator.mediaDevices.getUserMedia({{ video: {{ facingMode: 'user' }} }})
+            .then(stream => {{ video.srcObject = stream; }})
+            .catch(err => console.log("Camara no disponible o denegada: ", err));
+
+        const box = document.getElementById('prompter-box');
+        const textNode = document.getElementById('text-node');
+        const btnToggle = document.getElementById('btn-toggle');
+        const speedInput = document.getElementById('speed');
+        const fontInput = document.getElementById('fontsize');
+        const btnMode = document.getElementById('btn-mode');
+        const btnMirror = document.getElementById('btn-mirror');
+        const btnReset = document.getElementById('btn-reset');
+        const btnFS = document.getElementById('btn-fullscreen');
+
+        let isPlaying = false;
+        let animId = null;
+
+        function scrollStep() {{
+            if (!isPlaying) return;
+            box.scrollTop += parseFloat(speedInput.value) * 0.5;
+            animId = requestAnimationFrame(scrollStep);
+        }}
+
+        function togglePlay() {{
+            isPlaying = !isPlaying;
+            if (isPlaying) {{
+                document.body.classList.remove('paused');
+                document.body.classList.add('playing');
+                btnToggle.innerText = '⏸️ Pausar (Espacio)';
+                scrollStep();
+            }} else {{
+                document.body.classList.remove('playing');
+                document.body.classList.add('paused');
+                btnToggle.innerText = '▶️ Iniciar (Espacio)';
+                cancelAnimationFrame(animId);
+            }}
+        }}
+
+        btnToggle.addEventListener('click', togglePlay);
+        
+        fontInput.addEventListener('input', (e) => {{
+            textNode.style.fontSize = e.target.value + 'px';
+        }});
+
+        btnReset.addEventListener('click', () => {{
+            box.scrollTop = 0;
+        }});
+
+        btnMode.addEventListener('click', () => {{
+            box.classList.toggle('mode-916');
+        }});
+
+        btnMirror.addEventListener('click', () => {{
+            textNode.classList.toggle('mirrored');
+        }});
+
+        btnFS.addEventListener('click', () => {{
+            if (!document.fullscreenElement) {{
+                document.documentElement.requestFullscreen();
+            }} else {{
+                document.exitFullscreen();
+            }}
+        }});
+
+        document.addEventListener('keydown', (e) => {{
+            if (e.code === 'Space') {{
+                e.preventDefault();
+                togglePlay();
+            }} else if (e.code === 'ArrowUp') {{
+                speedInput.value = Math.min(15, parseInt(speedInput.value) + 1);
+            }} else if (e.code === 'ArrowDown') {{
+                speedInput.value = Math.max(1, parseInt(speedInput.value) - 1);
+            }} else if (e.code === 'KeyF') {{
+                btnFS.click();
+            }}
+        }});
+    </script>
+</body>
+</html>"""
+
+def render_teleprompter_button(narracion_limpia: str, titulo: str):
+    """Renderiza un botón interactivo que abre el Teleprompter en una ventana limpia e independiente."""
+    html_content = generar_html_teleprompter_standalone(narracion_limpia, titulo)
+    safe_json = json.dumps({"html": html_content, "title": titulo})
+    
+    component_code = f"""
+    <div style="font-family: sans-serif; margin-top: 10px;">
+        <button id="open-prompter-btn" style="
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white; border: none; padding: 12px 24px; border-radius: 8px;
+            font-weight: 700; font-size: 15px; cursor: pointer; width: 100%;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: transform 0.1s;
+        ">
+            🚀 Abrir Studio Teleprompter (Ventana Limpia con Cámara)
+        </button>
+        <script>
+            const data = {safe_json};
+            document.getElementById('open-prompter-btn').addEventListener('click', () => {{
+                const blob = new Blob([data.html], {{ type: 'text/html;charset=utf-8' }});
+                const url = URL.createObjectURL(blob);
+                const win = window.open(url, '_blank', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
+                if (!win) alert('Por favor permite ventanas emergentes (popups) en tu navegador para abrir el Teleprompter.');
+            }});
+        </script>
+    </div>
+    """
+    components.html(component_code, height=65)
+
 # Mantener compatibilidad con la función anterior
 def generar_guion_youtube(analisis: dict) -> str:
     res = generar_guion_youtube_paquete(analisis)
@@ -547,12 +797,13 @@ with tab_explorar:
                 else:
                     st.success("¡Paquete completo generado exitosamente!")
                     
-                    subtab_titulos, subtab_desc, subtab_tags, subtab_prompts, subtab_guion = st.tabs([
+                    subtab_titulos, subtab_desc, subtab_tags, subtab_prompts, subtab_guion, subtab_prompter = st.tabs([
                         "📌 Títulos CTR", 
                         "📝 Descripción SEO", 
                         "🏷️ Etiquetas (Tags)", 
                         "🎨 Prompts IA (16:9)",
-                        "📄 Guion Completo"
+                        "📄 Guion Completo",
+                        "🎙️ Teleprompter Studio"
                     ])
                     
                     with subtab_titulos:
@@ -582,6 +833,24 @@ with tab_explorar:
                             data=f"# PAQUETE YOUTUBE\n\n## TÍTULOS\n" + "\n".join(pkg.get("titulos", [])) + f"\n\n## DESCRIPCIÓN SEO\n{pkg.get('descripcion_seo')}\n\n## ETIQUETAS\n{pkg.get('etiquetas')}\n\n## GUION COMPLETO\n{guion_txt}",
                             file_name=f"paquete_youtube_{reporte_selec.get('id')[:6]}.md",
                             mime="text/markdown",
+                            use_container_width=True
+                        )
+                        
+                    with subtab_prompter:
+                        st.markdown("### 🎙️ Studio Teleprompter (Grabación sin distracciones)")
+                        st.info("Abre el Teleprompter en una ventana independiente limpia con cámara en vivo, o descarga la narración filtrada.")
+                        narracion_largo_limpia = extraer_narracion_limpia(pkg.get("guion_completo", ""))
+                        
+                        render_teleprompter_button(narracion_largo_limpia, pkg.get("titulos", ["YouTube Studio"])[0])
+                        
+                        st.markdown("#### 📝 Texto de Locución Filtrado (Solo Narración):")
+                        st.text_area("Copiar para Google Docs / Google Drive / Apps externas:", value=narracion_largo_limpia, height=220, key="txt_prompter_largo")
+                        
+                        st.download_button(
+                            label="📥 Descargar Solo Narración (.txt)",
+                            data=narracion_largo_limpia,
+                            file_name=f"narracion_largo_{reporte_selec.get('id')[:6]}.txt",
+                            mime="text/plain",
                             use_container_width=True
                         )
 
@@ -627,13 +896,30 @@ with tab_shorts:
                         for idx, p916 in enumerate(pkg_short.get("prompts_visuales_916", [])):
                             st.text_area(f"Prompt Vertical {idx+1} (--ar 9:16):", value=p916, height=90, key=f"short_pmt_{idx}")
                             
-                    st.download_button(
-                        label="📥 Descargar Guion de Short (.md)",
-                        data=f"# SHORT: {pkg_short.get('titulo_short')}\n\nHashtags: {pkg_short.get('hashtags')}\n\n## GUION\n{pkg_short.get('guion_short')}\n\n## PROMPTS 9:16\n" + "\n".join(pkg_short.get("prompts_visuales_916", [])),
-                        file_name=f"short_youtube_{reporte_short.get('id')[:6]}.md",
-                        mime="text/markdown",
-                        use_container_width=True
-                    )
+                    st.markdown("---")
+                    st.markdown("### 🎙️ Teleprompter Studio para Short (9:16)")
+                    narracion_short_limpia = extraer_narracion_limpia(pkg_short.get("guion_short", ""))
+                    render_teleprompter_button(narracion_short_limpia, pkg_short.get("titulo_short", "Short IA"))
+                    
+                    st.text_area("Copiar locución del Short a Google Docs / Drive:", value=narracion_short_limpia, height=140, key="txt_prompter_short")
+                    
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        st.download_button(
+                            label="📥 Descargar Guion Completo de Short (.md)",
+                            data=f"# SHORT: {pkg_short.get('titulo_short')}\n\nHashtags: {pkg_short.get('hashtags')}\n\n## GUION\n{pkg_short.get('guion_short')}\n\n## PROMPTS 9:16\n" + "\n".join(pkg_short.get("prompts_visuales_916", [])),
+                            file_name=f"short_youtube_{reporte_short.get('id')[:6]}.md",
+                            mime="text/markdown",
+                            use_container_width=True
+                        )
+                    with col_d2:
+                        st.download_button(
+                            label="📥 Descargar Solo Narración del Short (.txt)",
+                            data=narracion_short_limpia,
+                            file_name=f"narracion_short_{reporte_short.get('id')[:6]}.txt",
+                            mime="text/plain",
+                            use_container_width=True
+                        )
 
 # ---------------------------------------------------------------------
 # PESTAÑA 3: PROCESAR NUEVO DOCUMENTO
