@@ -22,11 +22,24 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   8. **Ingesta Automática de Fuentes (v1.3)**: Implementación de [ingest.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/ingest.py), un motor que rastrea automáticamente APIs públicas y RSS feeds (arXiv, WEF, MIT) para extraer nuevos reportes e informes sin intervención manual, procesarlos en lote con la IA de Gemini e insertarlos en Firestore.
   9. **Búsqueda Consolidada Multifuente (v1.4)**: Añadido soporte en `ingest.py` y `app.py` para consultar simultáneamente en arXiv, MIT y WEF con un solo clic, automatizando por completo la recopilación de informes de inteligencia.
 
+### Sesión: 10 de Agosto de 2026 (v2.0)
+* **Objetivo**: Transformación y escalabilidad del proyecto para soporte de YouTube Studio completo (títulos, descripciones SEO, tags, prompts IA 16:9), nuevo módulo exclusivo de YouTube Shorts (1 min), expansión de ingesta a más revistas y portales científicos/técnicos mundiales, y preparación para despliegue 100% cloud.
+* **Logros**:
+  1. **Paquete YouTube Largo (10 Min)**: Implementación en [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) de la función `generar_guion_youtube_paquete()` que genera en un solo paso: 3 títulos persuasivos CTR, descripción SEO optimizada con timestamps y hashtags, lista de etiquetas (tags) para copiar a YouTube Studio, prompts visuales de IA cinematográficos en inglés (16:9) y el guion literario de 10 min.
+  2. **Motor de YouTube Shorts (1 Min / Diario)**: Creación de la pestaña `📱 Shorts de IA (1 Minuto)` en [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) y la función `generar_guion_short_paquete()` para condensar cualquier informe de Firestore en un Short vertical de 60 segundos (~140 palabras) con ganchos de 5s, ritmo dinámico, título con emojis, hashtags (#Shorts #IA) y prompts visuales en formato vertical (`--ar 9:16`).
+  3. **Expansión Multifuente Global (v2.0)**: Actualización de [ingest.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/ingest.py) incorporando nuevas fuentes de alta reputación: *IEEE Spectrum*, *Nature Machine Intelligence*, *MIT Tech Review*, *arXiv (cs.AI)*, *TechCrunch AI*, *Wired AI*, *VentureBeat AI* y *BBC News Tech*.
+  4. **Categorización de Ingesta**: Clasificación de fuentes por categorías (`Universidades & Ciencia`, `Prensa Tech Global`, `Organismos & Coyuntura Global`).
+  5. **Compatibilidad 100% Cloud**: Adaptación de `inicializar_firebase()` y `analizar_reporte_con_gemini()` en [main.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/main.py) y [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) para resolver credenciales e API keys desde `st.secrets` y variables de entorno crudas (`FIREBASE_CREDENTIALS_JSON`), permitiendo desplegar la app 24/7 en **Streamlit Community Cloud** sin depender de ejecutar `streamlit run` en la PC local.
+
 ---
 
 ## Tareas Pendientes (Backlog)
 
 - [ ] **Manejo de Errores Geográficos y Red**: Implementar una política de reintentos (retry policy) con retroceso exponencial (exponential backoff) para manejar caídas temporales de red o cuotas de API (Error 429/503).
-- [x] **Procesamiento por Lotes (Batch Processing)**: Diseñado y programado mediante el escaneo e ingesta múltiple en lote directo en la pestaña 3.
+- [x] **Procesamiento por Lotes (Batch Processing)**: Diseñado y programado mediante el escaneo e ingesta múltiple en lote directo en la pestaña 4.
 - [ ] **Control de Contexto (Tokens)**: Añadir una función de conteo de tokens o validación de longitud previa para evitar sobrepasar los límites de contexto de modelos más pequeños en textos extremadamente largos.
-- [x] **Visualizador de Base de Datos**: Reemplazado y superado con creces mediante la creación del Dashboard interactivo local en Streamlit.
+- [x] **Visualizador de Base de Datos**: Reemplazado y superado con creces mediante la creación del Dashboard interactivo local/cloud en Streamlit.
+- [x] **Paquete Metadatos YouTube (v2.0)**: Completado (Títulos A/B, Descripción SEO, Tags, Prompts IA 16:9).
+- [x] **Módulo de Shorts Diarios (v2.0)**: Completado (Guiones 60s, Prompts 9:16).
+- [x] **Despliegue Cloud (v2.0)**: Preparado para Streamlit Community Cloud.
+

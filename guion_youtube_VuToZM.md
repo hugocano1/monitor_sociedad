@@ -1,5 +1,9 @@
 ---
 
+.venv\Scripts\streamlit run app.py running
+
+
+
 ### **TÍTULO PROVISIONAL PARA MINIATURA (THUMBNAIL):**
 *El fin de los empleos tecnológicos: El plan secreto de Asia para vaciar a América Latina.*
 ### **TÍTULO DEL VIDEO:**

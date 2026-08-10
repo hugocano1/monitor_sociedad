@@ -53,42 +53,76 @@ class AnalisisReporte(BaseModel):
 # =====================================================================
 def inicializar_firebase() -> firestore.firestore.Client:
     """
-    Inicializa el SDK de Firebase Admin utilizando el archivo de credenciales
-    de cuenta de servicio definido en las variables de entorno.
+    Inicializa el SDK de Firebase Admin utilizando el archivo de credenciales,
+    variables de entorno crudas (JSON string) o Streamlit Secrets para compatibilidad con la nube.
     
     Retorna:
         firestore.firestore.Client: Cliente activo para interactuar con Firestore.
     """
-    cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-    if not cred_path:
-        raise ValueError(
-            "La variable de entorno GOOGLE_APPLICATION_CREDENTIALS no está definida.\n"
-            "Asegúrate de configurarla en api_keys.env apuntando al archivo JSON de credenciales."
-        )
+    cred = None
     
-    # Manejar rutas relativas respecto a la ubicación de main.py
-    if not os.path.isabs(cred_path):
-        cred_path = os.path.abspath(os.path.join(os.path.dirname(__file__), cred_path))
-    
-    if not os.path.exists(cred_path):
-        raise FileNotFoundError(
-            f"No se encontró el archivo JSON de credenciales de Firebase en la ruta: {cred_path}"
-        )
-    
+    # 1. Intentar cargar desde Streamlit Secrets si está disponible en ejecución web
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and "FIREBASE_CREDENTIALS_JSON" in st.secrets:
+            json_str = st.secrets["FIREBASE_CREDENTIALS_JSON"]
+            cred_dict = json.loads(json_str) if isinstance(json_str, str) else dict(json_str)
+            cred = credentials.Certificate(cred_dict)
+            print("[FIREBASE] Credenciales cargadas desde Streamlit Secrets.")
+    except Exception:
+        pass
+
+    # 2. Intentar cargar desde variable de entorno con JSON crudo (útil para la nube)
+    if not cred and os.getenv("FIREBASE_CREDENTIALS_JSON"):
+        try:
+            raw_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+            cred_dict = json.loads(raw_json)
+            cred = credentials.Certificate(cred_dict)
+            print("[FIREBASE] Credenciales cargadas desde la variable de entorno FIREBASE_CREDENTIALS_JSON.")
+        except Exception as err:
+            print(f"[FIREBASE - ADVERTENCIA] No se pudo parsear FIREBASE_CREDENTIALS_JSON: {err}")
+
+    # 3. Intentar cargar desde ruta de archivo local
+    if not cred:
+        cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if not cred_path:
+            raise ValueError(
+                "No se encontraron credenciales de Firebase.\n"
+                "Asegúrate de definir GOOGLE_APPLICATION_CREDENTIALS (ruta de archivo) "
+                "o FIREBASE_CREDENTIALS_JSON (contenido JSON) en tus variables de entorno o Streamlit Secrets."
+            )
+        
+        # Manejar rutas relativas respecto a la ubicación de main.py
+        if not os.path.isabs(cred_path):
+            cred_path = os.path.abspath(os.path.join(os.path.dirname(__file__), cred_path))
+        
+        if not os.path.exists(cred_path):
+            raise FileNotFoundError(
+                f"No se encontró el archivo JSON de credenciales de Firebase en la ruta: {cred_path}"
+            )
+        
+        cred = credentials.Certificate(cred_path)
+        print("[FIREBASE] Credenciales cargadas desde archivo de disco local.")
+
     # Prevenir doble inicialización de la app
     if not firebase_admin._apps:
-        cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
         print("[FIREBASE] Conexión establecida con éxito.")
     
-    # Obtener el ID de la base de datos de las variables de entorno
+    # Obtener el ID de la base de datos de las variables de entorno o secrets
     db_id = os.getenv("FIREBASE_DATABASE_ID")
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and "FIREBASE_DATABASE_ID" in st.secrets:
+            db_id = st.secrets["FIREBASE_DATABASE_ID"]
+    except Exception:
+        pass
+
     from google.cloud import firestore as gcloud_firestore
     
-    if db_id and db_id.strip() and db_id != "(default)":
+    if db_id and str(db_id).strip() and str(db_id) != "(default)":
         print(f"[FIREBASE] Utilizando base de datos específica: '{db_id}'")
-        # Instanciar el cliente directamente para soportar bases de datos con ID personalizados
-        return gcloud_firestore.Client(database=db_id.strip())
+        return gcloud_firestore.Client(database=str(db_id).strip())
     
     print("[FIREBASE] Utilizando base de datos predeterminada '(default)'")
     return gcloud_firestore.Client()
@@ -109,9 +143,17 @@ def analizar_reporte_con_gemini(texto_reporte: str) -> dict:
     """
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+                api_key = st.secrets["GEMINI_API_KEY"]
+        except Exception:
+            pass
+
+    if not api_key:
         raise ValueError(
             "La variable de entorno GEMINI_API_KEY no está definida.\n"
-            "Asegúrate de configurarla en api_keys.env."
+            "Asegúrate de configurarla en api_keys.env o en tus Streamlit Secrets."
         )
     
     # Inicializar el cliente oficial moderno de Google GenAI
@@ -123,7 +165,7 @@ def analizar_reporte_con_gemini(texto_reporte: str) -> dict:
         "Tu objetivo es extraer del reporte provisto información estructurada de alta fidelidad. "
         "Presta especial atención a fuentes clave mundiales de alto nivel, tales como:\n"
         "1. Inteligencia Económica/Geopolítica: McKinsey Global Institute, Boston Consulting Group (BCG), World Economic Forum (WEF), OCDE.\n"
-        "2. Científicas/Técnicas: ArXiv (especialmente cs.AI), MIT Technology Review, IEEE.\n\n"
+        "2. Científicas/Técnicas: ArXiv (especialmente cs.AI), MIT Technology Review, IEEE Spectrum, Nature.\n\n"
         "El análisis debe centrarse obligatoriamente en identificar y desarrollar una de estas tres narrativas audiovisuales de alto impacto:\n"
         "- 'Transferencia de Riqueza': Quién pierde dinero y quién lo gana con esta tecnología (desplazamiento de poder económico de unas industrias/entidades a otras).\n"
         "- 'Cambio de Poder Geopolítico': Qué país o bloque domina la tecnología y cómo afecta esto a regiones en desarrollo, con foco particular en América Latina.\n"
@@ -133,33 +175,52 @@ def analizar_reporte_con_gemini(texto_reporte: str) -> dict:
         "Debes responder única y exclusivamente con un JSON que cumpla el esquema proporcionado. No agregues markdown adicional."
     )
     
-    # Obtener el modelo de las variables de entorno (fallback a gemini-2.5-pro por compatibilidad de API)
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
+    # Obtener el modelo de las variables de entorno o Streamlit Secrets
+    model_name = os.getenv("GEMINI_MODEL")
+    if not model_name:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and "GEMINI_MODEL" in st.secrets:
+                model_name = st.secrets["GEMINI_MODEL"]
+        except Exception:
+            pass
+    if not model_name:
+        model_name = "gemini-2.5-pro"
     
     print(f"[GEMINI] Enviando reporte a {model_name} para análisis...")
     
-    try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=[prompt_sistema, texto_reporte],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=AnalisisReporte,
-                temperature=0.1,  # Temperatura baja para asegurar coherencia y fidelidad al texto
+    max_reintentos = 4
+    espera_inicial = 2  # segundos
+    
+    for intento in range(max_reintentos):
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=[prompt_sistema, texto_reporte],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=AnalisisReporte,
+                    temperature=0.1,  # Temperatura baja para asegurar coherencia y fidelidad al texto
+                )
             )
-        )
-        
-        # Deserializar la respuesta estructurada
-        analisis_json = json.loads(response.text)
-        return analisis_json
-        
-    except json.JSONDecodeError as jde:
-        print(f"[ERROR] Gemini no retornó un JSON estructurado válido: {jde}")
-        print(f"Respuesta cruda del modelo: {response.text}")
-        raise
-    except Exception as e:
-        print(f"[ERROR] Error al invocar la API de Gemini: {e}")
-        raise
+            
+            # Deserializar la respuesta estructurada
+            analisis_json = json.loads(response.text)
+            return analisis_json
+            
+        except json.JSONDecodeError as jde:
+            print(f"[ERROR] Gemini no retornó un JSON estructurado válido: {jde}")
+            print(f"Respuesta cruda del modelo: {response.text}")
+            raise
+        except Exception as e:
+            if intento < max_reintentos - 1:
+                espera = espera_inicial * (2 ** intento)
+                print(f"[GEMINI - ADVERTENCIA] Intento {intento + 1} fallido por error temporal: {e}. Reintentando en {espera} segundos...")
+                import time
+                time.sleep(espera)
+            else:
+                print(f"[ERROR] Error persistente al invocar la API de Gemini tras {max_reintentos} intentos: {e}")
+                raise
 
 # =====================================================================
 # 4. Guardar Análisis en Firestore

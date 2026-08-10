@@ -245,69 +245,165 @@ def obtener_todos_reportes(db_client):
         st.warning(f"No se pudieron leer datos de Firestore: {err}")
         return []
 
-def generar_guion_youtube(analisis: dict) -> str:
-    """
-    Envía el análisis de Firestore a Gemini 3.5 Flash para estructurar
-    un guion literario de 10 minutos optimizado para la retención y el algoritmo.
-    """
+def get_gemini_client():
+    """Obtiene el cliente de GenAI resolviendo API key de env o secrets."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        return "Error: GEMINI_API_KEY no configurada en las variables de entorno."
+        try:
+            if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+                api_key = st.secrets["GEMINI_API_KEY"]
+        except Exception:
+            pass
+    if not api_key:
+        return None
+    return genai.Client(api_key=api_key)
+
+def get_gemini_model_name():
+    model_name = os.getenv("GEMINI_MODEL")
+    if not model_name:
+        try:
+            if hasattr(st, "secrets") and "GEMINI_MODEL" in st.secrets:
+                model_name = st.secrets["GEMINI_MODEL"]
+        except Exception:
+            pass
+    return model_name or "gemini-3.5-flash"
+
+def generar_guion_youtube_paquete(analisis: dict) -> dict:
+    """
+    Genera un paquete completo de publicación para YouTube (Video Largo ~10 Min):
+    1. 3 Títulos persuasivos de alto CTR.
+    2. Descripción SEO optimizada con marcas de tiempo, síntesis y hashtags.
+    3. Lista de etiquetas (Tags) para YouTube Studio.
+    4. Prompts visuales de IA robustos en inglés (Midjourney/Flux/Runway format).
+    5. Guion literario completo estructurado.
+    """
+    client = get_gemini_client()
+    if not client:
+        return {"error": "GEMINI_API_KEY no configurada."}
     
-    client = genai.Client(api_key=api_key)
-    model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    model_name = get_gemini_model_name()
     
     prompt = f"""
-    Actúa como un guionista y productor de YouTube profesional de nivel senior (al estilo de canales de alto impacto como VisualPolitik, Magnates de la Tecnología o Veritasium).
-    Tu tarea es transformar el siguiente análisis de inteligencia tecnológica/geopolítica en un guion literario de video largo completo y fluido para YouTube, diseñado para durar aproximadamente 10 minutos (requiere alrededor de 1200 a 1400 palabras en la narración).
+    Actúa como un productor y guionista de YouTube de nivel mundial (estilo VisualPolitik, Veritasium o Magnates de la Tecnología).
+    Tu tarea es transformar el siguiente análisis de inteligencia en un PAQUETE COMPLETO DE PUBLICACIÓN Y GUION PARA YOUTUBE (Video Largo 8-10 Minutos).
     
-    INFORMACIÓN CLAVE DEL INFORME:
-    - Emisor del Reporte: {analisis.get('fuente_original')}
+    DATOS DEL INFORME:
+    - Fuente Original: {analisis.get('fuente_original')}
     - Resumen Ejecutivo: {analisis.get('resumen_ejecutivo')}
-    - Calificación de Impacto: {analisis.get('nivel_impacto')}/10
-    - Citas Clave del Reporte: {", ".join(analisis.get('citas_verificables', []))}
-    - Enlaces de las Fuentes: {", ".join(analisis.get('enlaces_fuentes', []))}
-    - Narrativa Principal: {analisis.get('narrativa_principal')}
-    - Explicación Temática: {analisis.get('explicacion_narrativa')}
+    - Impacto: {analisis.get('nivel_impacto')}/10
+    - Citas: {", ".join(analisis.get('citas_verificables', []))}
+    - Fuentes: {", ".join(analisis.get('enlaces_fuentes', []))}
+    - Narrativa: {analisis.get('narrativa_principal')}
+    - Explicación: {analisis.get('explicacion_narrativa')}
     
-    REQUISITOS DEL ALGORITMO Y ESTRUCTURA DE RETENCIÓN DE YOUTUBE:
-    1. EL GANCHO DISRUPTIVO (0:00 - 0:30 segundos) [CRÍTICO]:
-       Comienza de inmediato con una frase de altísima intriga o una revelación de impacto basada en la narrativa principal ('{analisis.get('narrativa_principal')}'). Plantea un dilema que afecte directamente al bolsillo o el entendimiento del espectador. Cero intros genéricas. Promete revelar la verdad al final.
-    2. CONTEXTUALIZACIÓN (0:30 - 2:00 minutos):
-       Introduce el informe oficial y las fuentes ({analisis.get('fuente_original')}) estableciendo autoridad y credibilidad. Explica la gravedad de la situación a nivel global.
-    3. NÚCLEO NARRATIVO Y DESARROLLO (2:00 - 8:00 minutos):
-       Divide el desarrollo en 3 capítulos o actos dinámicos con títulos llamativos. Desarrolla la tecnología y las dinámicas de poder económico. Explica explícitamente cómo repercute esto en regiones en desarrollo como América Latina.
-    4. PREVISIÓN DEL FUTURO (8:00 - 9:30 minutos):
-       Plantea qué sucederá en la sociedad o el mercado en los próximos 24 meses debido a esta tecnología.
-    5. CIERRE CON CONEXIÓN Y CTA (9:30 - 10:00 minutos):
-       Termina con una pregunta abierta filosófica o geopolítica para promover la sección de comentarios (esto dispara el alcance del algoritmo de YouTube). Haz un llamado a la acción (CTA) dinámico y rápido de suscripción y debate.
-       
-    REQUISITO DE FORMATO DE SALIDA (MUY IMPORTANTE):
-    Debes estructurar el guion combinando los siguientes componentes usando markdown limpio:
+    DEBES RESPONDER ÚNICA Y EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO QUE TENGA LA SIGUIENTE ESTRUCTURA EXACTA (SIN TEXTO EXTRA ADICIONAL FUERA DEL JSON):
     
-    * Para la voz en off del narrador, usa:
-      VOZ EN OFF: [Texto dinámico e intrigante a narrar]
-      
-    * Para instrucciones de apoyo de imágenes/videos a editar en pantalla, usa:
-      APOYO VISUAL: [Descripción del clip de video, gráficos en 3D, mapas resaltados, recortes de prensa o b-roll ideal]
-      
-    * Para transiciones e indicaciones de efectos sonoros para mantener enganchada a la audiencia, usa:
-      EFECTO DE SONIDO: [Descripción del SFX como un swoosh rápido, estática, golpe bajo, zumbido cibernético]
+    {{
+        "titulos": [
+            "Título 1 Persuasivo de alto CTR (Dilema o Alerta)",
+            "Título 2 Alternativo enfocado en Economía/Poder",
+            "Título 3 Alternativo enfocado en Futuro/Impacto"
+        ],
+        "descripcion_seo": "Resumen atractivo de la descripción para YouTube Studio.\\n\\n📌 CAPÍTULOS / MARCAS DE TIEMPO:\\n0:00 - El Gancho\\n0:30 - Contexto Global\\n2:00 - Desarrollo\\n8:00 - Previsión 24 Meses\\n9:30 - Conclusión\\n\\n🔗 FUENTES OFICIALES:\\n" + ", ".join(analisis.get('enlaces_fuentes', [])) + "\\n\\n#IA #Tecnologia #Geopolitica #Sociedad50",
+        "etiquetas": "inteligencia artificial, geopolitica, economia global, sociedad 5.0, futuro del trabajo, tecnologia, analisis geopolitico, noticias tech",
+        "prompts_visuales": [
+            "Prompt 1 en inglés detallado para Midjourney/Flux: Cinematic 8k, hyperrealistic, dark moody lighting, cinematic wide shot, [elemento clave], 35mm lens --ar 16:9",
+            "Prompt 2 en inglés...",
+            "Prompt 3 en inglés..."
+        ],
+        "guion_completo": "Markdown con el guion literario de 10 min estructurado con VOZ EN OFF:, APOYO VISUAL:, EFECTO DE SONIDO:, PROMPT IA:"
+    }}
     
-    Asegúrate de que la narración se sienta fluida, intrigante y cinematográfica.
+    REGLAS DEL GUION DENTRO DEL JSON:
+    - Gancho inicial de 30 segundos ultra intrigante.
+    - Contextualización y autoridad de la fuente.
+    - 3 capítulos de desarrollo dinámico.
+    - Previsión a 24 meses.
+    - Cierre con pregunta abierta para comentarios y CTA rápido.
+    - Incluye indicaciones de PROMPT IA: en inglés en cada escena clave para ayudar al editor.
     """
     
-    try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.7,  # Incrementada para dar más creatividad y naturalidad al diálogo
+    max_reintentos = 3
+    for intento in range(max_reintentos):
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.7,
+                )
             )
-        )
-        return response.text
-    except Exception as e:
-        return f"Error al generar el guion con Gemini: {e}"
+            data = json.loads(response.text)
+            return data
+        except Exception as e:
+            if intento == max_reintentos - 1:
+                return {"error": f"Fallo al generar paquete de YouTube: {e}"}
+            import time
+            time.sleep(2)
+
+def generar_guion_short_paquete(analisis: dict) -> dict:
+    """
+    Genera un paquete exclusivo para YouTube Shorts (1 Minuto / Formato Vertical 9:16):
+    - Título del Short.
+    - Hashtags optimizados.
+    - Prompts visuales verticales (--ar 9:16).
+    - Guion ultrarrápido de 60 segundos (~140 palabras).
+    """
+    client = get_gemini_client()
+    if not client:
+        return {"error": "GEMINI_API_KEY no configurada."}
+    
+    model_name = get_gemini_model_name()
+    
+    prompt = f"""
+    Actúa como un creador experto de YouTube Shorts y TikTok en tecnología e Inteligencia Artificial de alto impacto global.
+    Transforma el siguiente informe en un GUION Y PAQUETE PARA YOUTUBE SHORT DE 1 MINUTO (Formato Vertical 9:16, máximo 140 palabras en narración).
+    
+    INFORME BASE:
+    - Fuente: {analisis.get('fuente_original')}
+    - Resumen: {analisis.get('resumen_ejecutivo')}
+    - Narrativa: {analisis.get('narrativa_principal')}
+    
+    DEBES RESPONDER ÚNICA Y EXCLUSIVAMENTE CON UN JSON VÁLIDO CON LA SIGUIENTE ESTRUCTURA (SIN TEXTO ADICIONAL):
+    
+    {{
+        "titulo_short": "Título ultrallamativo para Short (máximo 60 caracteres con emojis)",
+        "hashtags": "#Shorts #IA #TechNews #Geopolitica #NoticiasTech",
+        "prompts_visuales_916": [
+            "Prompt 1 en inglés vertical: Vertical cinematic portrait, 8k, hyperrealistic, glowing cyberpunk aesthetic, [concepto], --ar 9:16",
+            "Prompt 2 en inglés vertical: ...",
+            "Prompt 3 en inglés vertical: ..."
+        ],
+        "guion_short": "Markdown del Short de 60 segundos divididos en: [0-5s HOOK], [5-35s NOTICIA CLAVE], [35-50s IMPACTO], [50-60s CTA]. Usar VOZ EN OFF: y CORTE VISUAL (9:16):"
+    }}
+    """
+    
+    max_reintentos = 3
+    for intento in range(max_reintentos):
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.7,
+                )
+            )
+            data = json.loads(response.text)
+            return data
+        except Exception as e:
+            if intento == max_reintentos - 1:
+                return {"error": f"Fallo al generar Short: {e}"}
+            import time
+            time.sleep(2)
+
+# Mantener compatibilidad con la función anterior
+def generar_guion_youtube(analisis: dict) -> str:
+    res = generar_guion_youtube_paquete(analisis)
+    if "error" in res:
+        return res["error"]
+    return res.get("guion_completo", "No se pudo recuperar el guion.")
 
 # =====================================================================
 # 5. Cabecera de la Aplicación
@@ -317,10 +413,10 @@ with head_left:
     st.markdown("""
     <div style='display: flex; align-items: center; gap: 12px; margin-bottom: 0.5rem;'>
         <div style='background: #2563eb; width: 14px; height: 14px; border-radius: 3px;'></div>
-        <span style='font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em;'>SOCIEDAD 5.0 — INTEL ENGINE</span>
+        <span style='font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em;'>SOCIEDAD 5.0 — INTEL & MEDIA ENGINE</span>
     </div>
     <div style='color: #71717a; font-size: 0.85rem; margin-top: -0.2rem;'>
-        Motor de extracción geopolítica, análisis tecnológico y generación de contenidos audiovisuales.
+        Plataforma de inteligencia geopolítica, producción de guiones de 10 min, Shorts diarios y crawling global.
     </div>
     """, unsafe_allow_html=True)
 with head_right:
@@ -335,14 +431,15 @@ lista_reportes = obtener_todos_reportes(db)
 # =====================================================================
 # 6. Pestañas de Navegación
 # =====================================================================
-tab_explorar, tab_nuevo_analisis, tab_ingesta_automatica = st.tabs([
-    "🔍 Explorador de Informes", 
+tab_explorar, tab_shorts, tab_nuevo_analisis, tab_ingesta_automatica = st.tabs([
+    "🔍 Guion YouTube (Largo)", 
+    "📱 Shorts de IA (1 Minuto)",
     "⚙️ Procesar Nuevo Documento", 
     "📡 Ingesta Automática"
 ])
 
 # ---------------------------------------------------------------------
-# PESTAÑA 1: EXPLORADOR DE INFORMES Y GENERADOR DE GUIONES
+# PESTAÑA 1: EXPLORADOR DE INFORMES Y GUIONES DE VIDEO LARGO
 # ---------------------------------------------------------------------
 with tab_explorar:
     if not lista_reportes:
@@ -351,11 +448,8 @@ with tab_explorar:
         # Fila de KPIs
         kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
         
-        # Calcular métricas simples
         total_reportes = len(lista_reportes)
         promedio_impacto = sum([r.get("nivel_impacto", 0) for r in lista_reportes]) / total_reportes
-        
-        # Encontrar la narrativa dominante
         narrativas = [r.get("narrativa_principal") for r in lista_reportes if r.get("narrativa_principal")]
         narrativa_dominante = max(set(narrativas), key=narrativas.count) if narrativas else "Ninguna"
         
@@ -383,15 +477,13 @@ with tab_explorar:
         
         # Selección de Reporte
         opciones_reportes = {f"[{r.get('nivel_impacto')} HP] - {r.get('fuente_original')} - ID: {r.get('id')[:6]}": r for r in lista_reportes}
-        selected_key = st.selectbox("Selecciona un informe de Firestore para explorar y guionizar:", list(opciones_reportes.keys()))
+        selected_key = st.selectbox("Selecciona un informe para explorar y generar paquete de YouTube Largo:", list(opciones_reportes.keys()), key="select_largo")
         
         if selected_key:
             reporte_selec = opciones_reportes[selected_key]
             
             # Layout del reporte
             st.markdown("<div class='report-detail-card'>", unsafe_allow_html=True)
-            
-            # Badges
             narrativa_val = reporte_selec.get('narrativa_principal', 'No especificada')
             impacto_val = reporte_selec.get('nivel_impacto', 1)
             
@@ -402,35 +494,25 @@ with tab_explorar:
             </div>
             """, unsafe_allow_html=True)
             
-            # Detalles principales
             st.markdown(f"### {reporte_selec.get('fuente_original')}")
             
-            # Fecha formateada
             fecha_cr = reporte_selec.get('fecha_creacion')
             if fecha_cr:
-                if isinstance(fecha_cr, datetime):
-                    fecha_str = fecha_cr.strftime("%B %d, %Y - %H:%M UTC")
-                else:
-                    fecha_str = str(fecha_cr)
+                fecha_str = fecha_cr.strftime("%B %d, %Y - %H:%M UTC") if isinstance(fecha_cr, datetime) else str(fecha_cr)
                 st.markdown(f"<p style='color: var(--text-dim); font-size:0.75rem; margin-top:-0.5rem;'>Analizado el {fecha_str}</p>", unsafe_allow_html=True)
             
-            # Columnas del reporte
             col_izq, col_der = st.columns([7, 5])
-            
             with col_izq:
                 st.markdown("**Resumen Ejecutivo:**")
                 st.markdown(f"<p style='line-height:1.6; color: var(--text);'>{reporte_selec.get('resumen_ejecutivo')}</p>", unsafe_allow_html=True)
-                
                 st.markdown("**Enfoque Narrativo (Justificación para Video):**")
                 st.markdown(f"<p style='line-height:1.6; color: var(--text-muted); font-style: italic;'>{reporte_selec.get('explicacion_narrativa')}</p>", unsafe_allow_html=True)
                 
             with col_der:
-                # Citas
                 st.markdown("**Citas Verificables Extraídas:**")
                 for cita in reporte_selec.get('citas_verificables', []):
                     st.markdown(f"<blockquote style='border-left: 3px solid var(--border); padding-left: 0.8rem; margin-left: 0.5rem; font-size: 0.82rem; color: var(--text-muted);'>\"{cita}\"</blockquote>", unsafe_allow_html=True)
                 
-                # Enlaces
                 st.markdown("**Enlaces y Fuentes Citadas:**")
                 enlaces = reporte_selec.get('enlaces_fuentes', [])
                 if enlaces:
@@ -441,65 +523,115 @@ with tab_explorar:
             
             st.markdown("</div>", unsafe_allow_html=True)
             
-            # Sección de Guionización
             st.markdown("<br>", unsafe_allow_html=True)
-            st.subheader("🎬 Creación del Guion literario para YouTube (8-10 Minutos)")
-            st.info("Este módulo utiliza Gemini 3.5 Flash para estructurar un guion con técnicas de retención algorítmica de YouTube basadas en la narrativa de este reporte.")
+            st.subheader("🎬 Generar Paquete Completo para YouTube Studio (10 Minutos)")
+            st.info("Produce automáticamente: Títulos CTR, Descripción SEO con Timestamps, Etiquetas y Prompts Visuales de IA en 16:9.")
             
-            # Generar guion
-            btn_guion = st.button("Generar Guion para YouTube con IA 🎬", type="primary", use_container_width=True)
+            btn_guion = st.button("Generar Paquete Completo para YouTube Largo 🚀", type="primary", use_container_width=True, key="btn_youtube_largo")
             
             if btn_guion:
-                with st.spinner("Gemini 3.5 Flash está analizando el reporte y redactando el guion literario de 10 minutos..."):
-                    guion_texto = generar_guion_youtube(reporte_selec)
+                with st.spinner("Gemini 3.5 Flash creando el paquete de contenido para YouTube..."):
+                    pkg = generar_guion_youtube_paquete(reporte_selec)
                 
-                st.success("¡Guion literario generado exitosamente!")
-                
-                # Renderizar el guion estilizado
-                with st.expander("👁️ Ver Guion Completo Formateado", expanded=True):
-                    # Dividir la respuesta de Gemini y aplicar estilos personalizados para cada bloque
-                    lineas = guion_texto.split("\n")
-                    for linea in lineas:
-                        linea_strip = linea.strip()
-                        if not linea_strip:
-                            continue
+                if "error" in pkg:
+                    st.error(pkg["error"])
+                else:
+                    st.success("¡Paquete completo generado exitosamente!")
+                    
+                    subtab_titulos, subtab_desc, subtab_tags, subtab_prompts, subtab_guion = st.tabs([
+                        "📌 Títulos CTR", 
+                        "📝 Descripción SEO", 
+                        "🏷️ Etiquetas (Tags)", 
+                        "🎨 Prompts IA (16:9)",
+                        "📄 Guion Completo"
+                    ])
+                    
+                    with subtab_titulos:
+                        st.markdown("### 🎯 Opción de Títulos Persuasivos (Prueba A/B):")
+                        for idx, tit in enumerate(pkg.get("titulos", [])):
+                            st.text_input(f"Opción {idx+1}:", value=tit, key=f"tit_largo_{idx}")
+                            
+                    with subtab_desc:
+                        st.markdown("### 📝 Descripción Lista para Copiar:")
+                        st.text_area("Copia esto directamente a YouTube Studio:", value=pkg.get("descripcion_seo", ""), height=250, key="desc_largo")
                         
-                        # Detectar gancho de inicio (primeros 30s)
-                        if "GANCHO" in linea_strip.upper() or "HOOK" in linea_strip.upper():
-                            st.markdown(f"<div class='script-hook-card'><strong>⚠️ SECCIÓN: GANCHO DE 30 SEGUNDOS (HOOK)</strong><br>{linea}</div>", unsafe_allow_html=True)
-                        # Detectar Voz en Off (VO)
-                        elif "VOZ EN OFF:" in linea_strip.upper() or "VO:" in linea_strip.upper():
-                            txt_vo = linea_strip.replace("VOZ EN OFF:", "").replace("VO:", "").strip()
-                            st.markdown(f"<div class='script-vo'><div class='script-vo-label'>🎙️ Voz en Off (Locución)</div>{txt_vo}</div>", unsafe_allow_html=True)
-                        # Detectar apoyo visual
-                        elif "APOYO VISUAL:" in linea_strip.upper() or "B-ROLL:" in linea_strip.upper():
-                            txt_visual = linea_strip.replace("APOYO VISUAL:", "").replace("B-ROLL:", "").strip()
-                            st.markdown(f"<div class='script-production'>📹 <strong>B-ROLL / APOYO VISUAL:</strong> {txt_visual}</div>", unsafe_allow_html=True)
-                        # Detectar efectos de sonido
-                        elif "EFECTO DE SONIDO:" in linea_strip.upper() or "SFX:" in linea_strip.upper():
-                            txt_sfx = linea_strip.replace("EFECTO DE SONIDO:", "").replace("SFX:", "").strip()
-                            st.markdown(f"<span class='script-sfx'>🎵 SFX: {txt_sfx}</span>", unsafe_allow_html=True)
-                        # Títulos de secciones
-                        elif linea_strip.startswith("###") or linea_strip.startswith("##") or "ESCENA" in linea_strip.upper() or "CAPÍTULO" in linea_strip.upper():
-                            st.markdown(f"<div class='script-section-header'>{linea_strip.replace('#', '').strip()}</div>", unsafe_allow_html=True)
-                        else:
-                            st.markdown(linea_strip)
-                
-                # Descargar Guion
-                st.download_button(
-                    label="📥 Descargar Guion en formato Markdown (.md)",
-                    data=guion_texto,
-                    file_name=f"guion_youtube_{reporte_selec.get('id')[:6]}.md",
-                    mime="text/markdown",
-                    use_container_width=True
-                )
+                    with subtab_tags:
+                        st.markdown("### 🏷️ Etiquetas (Tags):")
+                        st.text_area("Copia y pega en la sección de Etiquetas:", value=pkg.get("etiquetas", ""), height=100, key="tags_largo")
+                        
+                    with subtab_prompts:
+                        st.markdown("### 🎨 Prompts Visuales para Midjourney / Flux / Runway (16:9):")
+                        for idx, pmt in enumerate(pkg.get("prompts_visuales", [])):
+                            st.text_input(f"Prompt IA Scene {idx+1}:", value=pmt, key=f"pmt_largo_{idx}")
+                            
+                    with subtab_guion:
+                        st.markdown("### 📜 Guion Literario Completo (10 Min):")
+                        guion_txt = pkg.get("guion_completo", "")
+                        st.markdown(guion_txt)
+                        st.download_button(
+                            label="📥 Descargar Paquete Completo (.md)",
+                            data=f"# PAQUETE YOUTUBE\n\n## TÍTULOS\n" + "\n".join(pkg.get("titulos", [])) + f"\n\n## DESCRIPCIÓN SEO\n{pkg.get('descripcion_seo')}\n\n## ETIQUETAS\n{pkg.get('etiquetas')}\n\n## GUION COMPLETO\n{guion_txt}",
+                            file_name=f"paquete_youtube_{reporte_selec.get('id')[:6]}.md",
+                            mime="text/markdown",
+                            use_container_width=True
+                        )
 
 # ---------------------------------------------------------------------
-# PESTAÑA 2: PROCESAR NUEVO DOCUMENTO
+# PESTAÑA 2: NUEVO MÓDULO DE SHORTS DE IA (1 MINUTO / DIARIO)
+# ---------------------------------------------------------------------
+with tab_shorts:
+    st.subheader("📱 Motor de Creación para YouTube Shorts (1 Minuto / Diario)")
+    st.write("Selecciona cualquier reporte de Firestore y genera al instante un Short de 60 segundos con formato vertical (9:16), ritmo acelerado y prompts visuales listos para publicación diaria.")
+    
+    if not lista_reportes:
+        st.info("Ingresa o descarga primero un informe en Firestore para generar Shorts.")
+    else:
+        opciones_shorts = {f"[{r.get('nivel_impacto')} HP] - {r.get('fuente_original')} - ID: {r.get('id')[:6]}": r for r in lista_reportes}
+        selected_short_key = st.selectbox("Selecciona informe para Short:", list(opciones_shorts.keys()), key="select_short")
+        
+        if selected_short_key:
+            reporte_short = opciones_shorts[selected_short_key]
+            
+            st.markdown(f"**Fuente Seleccionada:** {reporte_short.get('fuente_original')} | **Narrativa:** {reporte_short.get('narrativa_principal')}")
+            
+            btn_gen_short = st.button("Generar YouTube Short de 1 Minuto ⚡", type="primary", use_container_width=True, key="btn_short_action")
+            
+            if btn_gen_short:
+                with st.spinner("Gemini 3.5 Flash condensando el informe en un Short vertical de 60 segundos..."):
+                    pkg_short = generar_guion_short_paquete(reporte_short)
+                    
+                if "error" in pkg_short:
+                    st.error(pkg_short["error"])
+                else:
+                    st.success("¡Short generado exitosamente!")
+                    
+                    st.markdown(f"### 📌 Título del Short: `{pkg_short.get('titulo_short')}`")
+                    st.markdown(f"**Hashtags:** `{pkg_short.get('hashtags')}`")
+                    
+                    s_col1, s_col2 = st.columns([7, 5])
+                    with s_col1:
+                        st.markdown("#### 📜 Guion Literario de 60 Segundos:")
+                        st.markdown(pkg_short.get("guion_short", ""))
+                        
+                    with s_col2:
+                        st.markdown("#### 📱 Prompts Visuales Verticals (9:16):")
+                        for idx, p916 in enumerate(pkg_short.get("prompts_visuales_916", [])):
+                            st.text_area(f"Prompt Vertical {idx+1} (--ar 9:16):", value=p916, height=90, key=f"short_pmt_{idx}")
+                            
+                    st.download_button(
+                        label="📥 Descargar Guion de Short (.md)",
+                        data=f"# SHORT: {pkg_short.get('titulo_short')}\n\nHashtags: {pkg_short.get('hashtags')}\n\n## GUION\n{pkg_short.get('guion_short')}\n\n## PROMPTS 9:16\n" + "\n".join(pkg_short.get("prompts_visuales_916", [])),
+                        file_name=f"short_youtube_{reporte_short.get('id')[:6]}.md",
+                        mime="text/markdown",
+                        use_container_width=True
+                    )
+
+# ---------------------------------------------------------------------
+# PESTAÑA 3: PROCESAR NUEVO DOCUMENTO
 # ---------------------------------------------------------------------
 with tab_nuevo_analisis:
     st.subheader("Ingresa un nuevo reporte para análisis")
-    st.write("Copia y pega un reporte económico, político o tecnológico. El motor utilizará Gemini 3.5 Flash para extraer la información y clasificarla en Firestore.")
+    st.write("Copia y pega un reporte económico, político o tecnológico. El motor utilizará Gemini para extraer la información y clasificarla en Firestore.")
     
     nuevo_texto = st.text_area("Cuerpo del reporte original:", height=300, placeholder="Escribe o pega aquí el reporte económico de McKinsey, WEF, arXiv, etc...")
     
@@ -516,20 +648,14 @@ with tab_nuevo_analisis:
         else:
             with st.spinner("Analizando reporte con Gemini 3.5 Flash y estructurando datos..."):
                 try:
-                    # 1. Obtener el análisis estructurado
                     analisis_resultado = analizar_reporte_con_gemini(nuevo_texto)
                     st.success("¡Análisis estructurado por Gemini exitosamente!")
-                    
-                    # Mostrar vista previa
                     st.json(analisis_resultado)
                     
-                    # 2. Guardar en Firestore
                     with st.spinner("Guardando en la base de datos Firestore ('socidad50')..."):
                         doc_id = guardar_en_firestore(db, analisis_resultado)
                         
                     st.success(f"Análisis guardado con éxito. ID de documento: {doc_id}")
-                    
-                    # Forzar recarga de reportes en la pestaña principal
                     st.toast("Actualizando panel con el nuevo reporte...")
                     st.rerun()
                     
@@ -537,57 +663,50 @@ with tab_nuevo_analisis:
                     st.error(f"Ocurrió un fallo en el procesamiento: {err}")
 
 # ---------------------------------------------------------------------
-# PESTAÑA 3: INGESTA AUTOMÁTICA DE FUENTES
+# PESTAÑA 4: INGESTA AUTOMÁTICA DE FUENTES GLOBALES
 # ---------------------------------------------------------------------
 with tab_ingesta_automatica:
-    st.subheader("Búsqueda y Descarga Automática de Fuentes")
+    st.subheader("📡 Búsqueda y Descarga Automática de Fuentes Globales")
     st.write(
-        "Este módulo rastrea de forma autónoma APIs y canales oficiales (arXiv, WEF, MIT) "
-        "para buscar los informes y papers más recientes, pasarlos por el análisis de Gemini 3.5 Flash e insertarlos en Firestore."
+        "Rastrea de forma autónoma revistas académicas, portales tecnológicos y medios de prensa mundial "
+        "(arXiv, IEEE Spectrum, Nature, MIT, TechCrunch, Wired) para guardar análisis en Firestore."
     )
     
-    # Formulario de búsqueda
     col_f1, col_f2, col_f3 = st.columns([4, 4, 2])
     with col_f1:
         fuente_opcion = st.selectbox(
-            "Selecciona la fuente de datos:",
-            ["Buscar en todas las fuentes (Consolidado)", "arXiv (Papers de Inteligencia Artificial - cs.AI)", "World Economic Forum (WEF - Feed de Agenda)", "MIT Technology Review (Feed General)"]
+            "Selecciona la fuente o categoría de búsqueda:",
+            [
+                "Todas las fuentes (Consolidado Global)",
+                "Universidades & Ciencia (arXiv, IEEE Spectrum, Nature, MIT)",
+                "Prensa Tech Global (TechCrunch, Wired, VentureBeat)",
+                "Organismos & Coyuntura Global (BBC Tech, WEF)"
+            ]
         )
     with col_f2:
-        palabra_clave_busqueda = st.text_input("Filtrar por palabra clave (opcional):", placeholder="ej. post-quantum, agent, automation...")
+        palabra_clave_busqueda = st.text_input("Filtrar por palabra clave (opcional):", placeholder="ej. quantum, humanoid, agent, LLM...")
     with col_f3:
         limite_busqueda = st.number_input("Límite de resultados:", min_value=1, max_value=10, value=3)
         
-    btn_rastrear = st.button("Rastrear, Analizar y Guardar en Firestore ⚡", type="primary", use_container_width=True)
+    btn_rastrear = st.button("Rastrear, Analizar y Guardar en Firestore ⚡", type="primary", use_container_width=True, key="btn_ingest_exec")
     
     if btn_rastrear:
-        # Mapear opción seleccionada
-        fuente_key = ""
-        if "todas" in fuente_opcion.lower() or "consolidado" in fuente_opcion.lower():
-            fuente_key = "todos"
-        elif "arxiv" in fuente_opcion.lower():
-            fuente_key = "arxiv"
-        elif "wef" in fuente_opcion.lower() or "forum" in fuente_opcion.lower():
-            fuente_key = "wef"
-        elif "mit" in fuente_opcion.lower():
-            fuente_key = "mit"
+        fuente_key = fuente_opcion.lower()
             
-        with st.spinner(f"Consultando fuente externa '{fuente_opcion}'..."):
+        with st.spinner(f"Consultando fuentes en '{fuente_opcion}'..."):
             from ingest import buscar_documentos_remotos
             documentos_encontrados = buscar_documentos_remotos(fuente_key, palabra_clave_busqueda, limite_busqueda)
             
         if not documentos_encontrados:
-            st.warning("No se encontraron documentos o artículos recientes en la búsqueda con los filtros aplicados.")
+            st.warning("No se encontraron documentos o artículos recientes con los filtros aplicados.")
         else:
             st.success(f"¡Se recuperaron {len(documentos_encontrados)} documentos con éxito!")
             
-            # Procesar cada documento en lote
             for idx, doc in enumerate(documentos_encontrados):
                 st.markdown(f"---")
                 st.markdown(f"### Documento {idx+1}: {doc['titulo']}")
                 st.markdown(f"**Fuente:** {doc['fuente']} | **Fecha:** {doc['fecha']} | [Enlace Oficial]({doc['enlace']})")
                 
-                # Crear el texto completo para Gemini
                 texto_a_analizar = f"""
                 TÍTULO: {doc['titulo']}
                 AUTORES: {doc['autores']}
@@ -598,23 +717,17 @@ with tab_ingesta_automatica:
                 {doc['resumen']}
                 """
                 
-                # Botón expandible para ver el crudo
                 with st.expander("Ver contenido original recuperado", expanded=False):
                     st.text(doc['resumen'])
                 
-                # Analizar y guardar
                 with st.spinner(f"Gemini 3.5 Flash analizando documento {idx+1}..."):
                     try:
                         analisis_resultado = analizar_reporte_con_gemini(texto_a_analizar)
                         
-                        # Inyectar el enlace de la fuente descargada si el análisis no lo capturó de forma nativa
                         if doc['enlace'] not in analisis_resultado.get('enlaces_fuentes', []):
                             analisis_resultado.setdefault('enlaces_fuentes', []).append(doc['enlace'])
                             
-                        # Mostrar resultado
                         st.json(analisis_resultado)
-                        
-                        # Guardar
                         doc_id = guardar_en_firestore(db, analisis_resultado)
                         st.success(f"¡Análisis estructurado y guardado en Firestore! ID: {doc_id}")
                         
@@ -623,3 +736,4 @@ with tab_ingesta_automatica:
             
             st.toast("¡Procesamiento en lote completado!")
             st.rerun()
+

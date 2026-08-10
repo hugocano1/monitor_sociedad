@@ -3,6 +3,16 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import List, Dict
 
+# Cabeceras de simulación de navegador para evitar bloqueos HTTP 403 (Forbidden)
+HEADERS_NAVEGADOR = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8,en-US;q=0.7',
+    'Referer': 'https://www.google.com/',
+    'Connection': 'keep-alive'
+}
+
+
 # =====================================================================
 # 1. Recuperación de Papers de arXiv (Universidad de Cornell)
 # =====================================================================
@@ -37,7 +47,7 @@ def consultar_arxiv(palabra_clave: str = "", max_resultados: int = 5) -> List[Di
     try:
         req = urllib.request.Request(
             url, 
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            headers=HEADERS_NAVEGADOR
         )
         with urllib.request.urlopen(req) as response:
             xml_data = response.read()
@@ -109,7 +119,7 @@ def consultar_rss(url_feed: str, nombre_fuente: str, palabra_clave: str = "", ma
     try:
         req = urllib.request.Request(
             url_feed, 
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            headers=HEADERS_NAVEGADOR
         )
         with urllib.request.urlopen(req) as response:
             xml_data = response.read()
@@ -168,36 +178,115 @@ def consultar_rss(url_feed: str, nombre_fuente: str, palabra_clave: str = "", ma
         return []
 
 # =====================================================================
+# 2. Catálogo de Fuentes RSS Configuradas
+# =====================================================================
+FUENTES_RSS = {
+    # 🔬 Universidades & Investigaciones Científicas
+    "arxiv": {
+        "nombre": "arXiv (cs.AI - Cornell Univ.)",
+        "categoria": "Universidades & Ciencia",
+        "tipo": "arxiv"
+    },
+    "ieee": {
+        "nombre": "IEEE Spectrum (Robótica & IA)",
+        "url": "https://spectrum.ieee.org/rss/artificial-intelligence/fulltext",
+        "categoria": "Universidades & Ciencia",
+        "tipo": "rss"
+    },
+    "nature": {
+        "nombre": "Nature Machine Intelligence",
+        "url": "https://www.nature.com/natmachintell.rss",
+        "categoria": "Universidades & Ciencia",
+        "tipo": "rss"
+    },
+    "mit": {
+        "nombre": "MIT Technology Review",
+        "url": "https://www.technologyreview.com/feed/",
+        "categoria": "Universidades & Ciencia",
+        "tipo": "rss"
+    },
+
+    # 📰 Prensa Tecnológica Global
+    "techcrunch": {
+        "nombre": "TechCrunch (Artificial Intelligence)",
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "categoria": "Prensa Tech Global",
+        "tipo": "rss"
+    },
+    "wired": {
+        "nombre": "Wired (AI & Tech)",
+        "url": "https://www.wired.com/feed/tag/ai/latest/rss",
+        "categoria": "Prensa Tech Global",
+        "tipo": "rss"
+    },
+    "venturebeat": {
+        "nombre": "VentureBeat (Enterprise AI)",
+        "url": "https://venturebeat.com/category/ai/feed/",
+        "categoria": "Prensa Tech Global",
+        "tipo": "rss"
+    },
+
+    # 🌐 Organismos & Coyuntura Global
+    "bbc": {
+        "nombre": "BBC News (Technology)",
+        "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+        "categoria": "Organismos & Coyuntura Global",
+        "tipo": "rss"
+    }
+}
+
+# =====================================================================
 # 3. Función Unificada de Ingesta
 # =====================================================================
-def buscar_documentos_remotos(fuente: str, palabra_clave: str = "", limite: int = 3) -> List[Dict]:
+def buscar_documentos_remotos(fuente_o_categoria: str, palabra_clave: str = "", limite: int = 3) -> List[Dict]:
     """
     Punto de entrada unificado para buscar documentos e informes en la web.
-    Soporta buscar en una fuente específica o en "todos".
+    Soporta buscar por clave específica de fuente, por categoría o en 'todas'.
     """
-    fuente = fuente.lower().strip()
+    target = fuente_o_categoria.lower().strip()
+    resultados = []
     
-    if fuente == "todos" or fuente == "all":
-        print("[INGEST] Iniciando búsqueda consolidada en todas las fuentes...")
-        resultados = []
-        # 1. arXiv
-        resultados.extend(consultar_arxiv(palabra_clave, max_resultados=limite))
-        # 2. MIT Technology Review
-        feed_mit = "https://www.technologyreview.com/feed/"
-        resultados.extend(consultar_rss(feed_mit, "MIT Technology Review", palabra_clave, max_resultados=limite))
-        # 3. WEF
-        feed_wef = "https://www.weforum.org/agenda/feed"
-        resultados.extend(consultar_rss(feed_wef, "World Economic Forum (WEF)", palabra_clave, max_resultados=limite))
-        return resultados
-        
-    elif "arxiv" in fuente:
-        return consultar_arxiv(palabra_clave, max_resultados=limite)
-    elif "mit" in fuente:
-        feed_url = "https://www.technologyreview.com/feed/"
-        return consultar_rss(feed_url, "MIT Technology Review", palabra_clave, max_resultados=limite)
-    elif "wef" in fuente or "foro" in fuente:
-        feed_url = "https://www.weforum.org/agenda/feed"
-        return consultar_rss(feed_url, "World Economic Forum (WEF)", palabra_clave, max_resultados=limite)
+    print(f"[INGEST] Iniciando búsqueda remota: filtro='{target}', palabra_clave='{palabra_clave}', limite={limite}")
+
+    # Determinar qué fuentes consultar
+    fuentes_a_consultar = []
+
+    if target in ["todos", "all", "todas las fuentes (consolidado)"]:
+        fuentes_a_consultar = list(FUENTES_RSS.keys())
+    elif target in ["universidades & ciencia", "universidades", "ciencia"]:
+        fuentes_a_consultar = [k for k, v in FUENTES_RSS.items() if v["categoria"] == "Universidades & Ciencia"]
+    elif target in ["prensa tech global", "prensa", "prensa tech"]:
+        fuentes_a_consultar = [k for k, v in FUENTES_RSS.items() if v["categoria"] == "Prensa Tech Global"]
+    elif target in ["organismos & coyuntura global", "organismos", "coyuntura"]:
+        fuentes_a_consultar = [k for k, v in FUENTES_RSS.items() if v["categoria"] == "Organismos & Coyuntura Global"]
     else:
-        print(f"[INGEST] Fuente '{fuente}' no soportada por el rastreador automático.")
-        return []
+        # Buscar por clave específica o coincidencia parcial
+        for k, v in FUENTES_RSS.items():
+            if k in target or v["nombre"].lower() in target:
+                fuentes_a_consultar.append(k)
+
+    if not fuentes_a_consultar:
+        # Fallback a todas si no se reconoce la categoría
+        fuentes_a_consultar = list(FUENTES_RSS.keys())
+
+    # Límite por fuente individual para no saturar
+    limite_por_fuente = max(1, min(limite, 5))
+
+    for key in fuentes_a_consultar:
+        info = FUENTES_RSS.get(key)
+        if not info:
+            continue
+
+        if info["tipo"] == "arxiv":
+            res = consultar_arxiv(palabra_clave, max_resultados=limite_por_fuente)
+            resultados.extend(res)
+        elif info["tipo"] == "rss":
+            res = consultar_rss(info["url"], info["nombre"], palabra_clave, max_resultados=limite_por_fuente)
+            resultados.extend(res)
+
+        if len(resultados) >= limite * len(fuentes_a_consultar):
+            break
+
+    print(f"[INGEST] Búsqueda finalizada. Total de documentos recuperados: {len(resultados)}")
+    return resultados[:limite * 3]  # Retornar una lista acotada razonable
+
