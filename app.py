@@ -284,8 +284,13 @@ def generar_guion_youtube_paquete(analisis: dict) -> dict:
     model_name = get_gemini_model_name()
     
     prompt = f"""
-    Actúa como un productor y guionista de YouTube de nivel mundial (estilo VisualPolitik, Veritasium o Magnates de la Tecnología).
-    Tu tarea es transformar el siguiente análisis de inteligencia en un PAQUETE COMPLETO DE PUBLICACIÓN Y GUION PARA YOUTUBE (Video Largo 8-10 Minutos).
+    Actúa como un creador y guionista de YouTube humano de nivel senior (estilo periodista de divulgación científica y analista apasionado, como VisualPolitik o Veritasium).
+    Tu tarea es transformar el siguiente informe en un PAQUETE COMPLETO DE PUBLICACIÓN Y GUION PARA YOUTUBE (Video Largo 8-10 Minutos).
+    
+    DIRECTRICES DE ESTILO Y TONO (OBLIGATORIAS):
+    1. TONO HUMANO Y NATURAL: Escribe como un ser humano real conversando con otro apasionado de la tecnología. PROHIBIDO usar muletillas y clichés de IA como 'En un mundo donde...', 'Sumérgete en...', 'En la era digital...', 'Es fundamental destacar...', 'Un testimonio de...', 'Desentrañar...', 'En conclusión...'.
+    2. VISIÓN CONSTRUCTIVA Y ENFOQUE POSITIVO: NO seas apocalíptico ni alarmista sin sentido. Reconoce y resalta cuando la tecnología beneficia a la humanidad, resuelve problemas complejos o impulsa el bienestar social, combinando esto con análisis maduro de los desafíos.
+    3. RITMO DINÁMICO: Frases de longitud variada, analogías de la vida cotidiana y tono ágil.
     
     DATOS DEL INFORME:
     - Fuente Original: {analisis.get('fuente_original')}
@@ -300,14 +305,14 @@ def generar_guion_youtube_paquete(analisis: dict) -> dict:
     
     {{
         "titulos": [
-            "Título 1 Persuasivo de alto CTR (Dilema o Alerta)",
-            "Título 2 Alternativo enfocado en Economía/Poder",
-            "Título 3 Alternativo enfocado en Futuro/Impacto"
+            "Título 1 Persuasivo de alto CTR (Dilema o Revelación positiva/impactante)",
+            "Título 2 Alternativo enfocado en Oportunidad/Transformación",
+            "Título 3 Alternativo enfocado en Futuro/Sociedad"
         ],
         "descripcion_seo": "Resumen atractivo de la descripción para YouTube Studio.\\n\\n📌 CAPÍTULOS / MARCAS DE TIEMPO:\\n0:00 - El Gancho\\n0:30 - Contexto Global\\n2:00 - Desarrollo\\n8:00 - Previsión 24 Meses\\n9:30 - Conclusión\\n\\n🔗 FUENTES OFICIALES:\\n" + ", ".join(analisis.get('enlaces_fuentes', [])) + "\\n\\n#IA #Tecnologia #Geopolitica #Sociedad50",
-        "etiquetas": "inteligencia artificial, geopolitica, economia global, sociedad 5.0, futuro del trabajo, tecnologia, analisis geopolitico, noticias tech",
+        "etiquetas": "inteligencia artificial, geopolitica, economia global, sociedad 5.0, futuro del trabajo, tecnologia, avances tecnologicos, noticias tech",
         "prompts_visuales": [
-            "Prompt 1 en inglés detallado para Midjourney/Flux: Cinematic 8k, hyperrealistic, dark moody lighting, cinematic wide shot, [elemento clave], 35mm lens --ar 16:9",
+            "Prompt 1 en inglés detallado para Midjourney/Flux: Cinematic 8k, hyperrealistic, warm atmospheric lighting, cinematic wide shot, [elemento clave], 35mm lens --ar 16:9",
             "Prompt 2 en inglés...",
             "Prompt 3 en inglés..."
         ],
@@ -315,12 +320,12 @@ def generar_guion_youtube_paquete(analisis: dict) -> dict:
     }}
     
     REGLAS DEL GUION DENTRO DEL JSON:
-    - Gancho inicial de 30 segundos ultra intrigante.
-    - Contextualización y autoridad de la fuente.
-    - 3 capítulos de desarrollo dinámico.
-    - Previsión a 24 meses.
+    - Gancho inicial de 30 segundos intrigante y humano.
+    - Contextualización de fuentes.
+    - 3 capítulos de desarrollo dinámico destacando el valor positivo y los retos reales.
+    - Previsión a 24 meses realista.
     - Cierre con pregunta abierta para comentarios y CTA rápido.
-    - Incluye indicaciones de PROMPT IA: en inglés en cada escena clave para ayudar al editor.
+    - Incluye indicaciones de PROMPT IA: en inglés en cada escena clave.
     """
     
     max_reintentos = 3
@@ -357,8 +362,12 @@ def generar_guion_short_paquete(analisis: dict) -> dict:
     model_name = get_gemini_model_name()
     
     prompt = f"""
-    Actúa como un creador experto de YouTube Shorts y TikTok en tecnología e Inteligencia Artificial de alto impacto global.
+    Actúa como un creador humano de YouTube Shorts experto en divulgación de IA y tecnología.
     Transforma el siguiente informe en un GUION Y PAQUETE PARA YOUTUBE SHORT DE 1 MINUTO (Formato Vertical 9:16, máximo 140 palabras en narración).
+    
+    REGLAS DE TONO:
+    - Tono fresco, conversacional, sin clichés de IA ('En un mundo donde...', 'Sumérgete en...').
+    - Destaca con energía cuando el avance tecnológico solucione un problema o beneficie a la gente.
     
     INFORME BASE:
     - Fuente: {analisis.get('fuente_original')}
@@ -369,13 +378,13 @@ def generar_guion_short_paquete(analisis: dict) -> dict:
     
     {{
         "titulo_short": "Título ultrallamativo para Short (máximo 60 caracteres con emojis)",
-        "hashtags": "#Shorts #IA #TechNews #Geopolitica #NoticiasTech",
+        "hashtags": "#Shorts #IA #TechNews #Geopolitica #Innovacion",
         "prompts_visuales_916": [
-            "Prompt 1 en inglés vertical: Vertical cinematic portrait, 8k, hyperrealistic, glowing cyberpunk aesthetic, [concepto], --ar 9:16",
+            "Prompt 1 en inglés vertical: Vertical cinematic portrait, 8k, hyperrealistic, vibrant aesthetic, [concepto], --ar 9:16",
             "Prompt 2 en inglés vertical: ...",
             "Prompt 3 en inglés vertical: ..."
         ],
-        "guion_short": "Markdown del Short de 60 segundos divididos en: [0-5s HOOK], [5-35s NOTICIA CLAVE], [35-50s IMPACTO], [50-60s CTA]. Usar VOZ EN OFF: y CORTE VISUAL (9:16):"
+        "guion_short": "Markdown del Short de 60 segundos divididos en: [0-5s HOOK], [5-35s NOTICIA CLAVE], [35-50s IMPACTO POSITIVO/FUTURO], [50-60s CTA]. Usar VOZ EN OFF: y CORTE VISUAL (9:16):"
     }}
     """
     
