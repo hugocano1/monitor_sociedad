@@ -43,6 +43,7 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   3. **Pestaña Dedicada de Historial (`📚 Historial de Guiones`)**: Añadida nueva pestaña principal en [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) para buscar, filtrar y consultar cualquier guion generado previamente en la base de datos sin gastar tokens adicionales de la API de Gemini.
   4. **Prevención de Reseteos al Descargar**: Eliminación de la pérdida de guiones al hacer clic en los botones de descarga (`st.download_button`) mediante la recarga directa de los datos almacenados en Firestore.
   5. **Línea Editorial Periodística y Posición Humanista (Sociedad 5.0)**: Actualización de prompts en `generar_guion_youtube_paquete()` y `generar_guion_short_paquete()` para forzar un enfoque periodístico riguroso ("ambas caras de la moneda": oportunidades vs. riesgos/desafíos éticos y laborales), la clasificación de madurez de la tecnología (producto comercial vs. estudio de laboratorio) y la afirmación explícita de la tesis del canal (*"Sensibilización sobre la transición del tecnocentrismo hacia el bienestar humano"*).
+  6. **Resolución de ImportError en Streamlit Cloud**: Reemplazo de las anotaciones de tipo `firestore.firestore.Client` por `typing.Any` en [main.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/main.py) para evitar errores de evaluación de atributos de módulo en el runtime de Streamlit Cloud.
 
 ---
 
