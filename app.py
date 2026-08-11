@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from main import inicializar_firebase, analizar_reporte_con_gemini, guardar_en_firestore
+from main import inicializar_firebase, analizar_reporte_con_gemini, guardar_en_firestore, guardar_paquete_guion_firestore
 
 # Cargar variables de entorno
 env_path = os.path.join(os.path.dirname(__file__), "api_keys.env")
@@ -285,13 +285,17 @@ def generar_guion_youtube_paquete(analisis: dict) -> dict:
     model_name = get_gemini_model_name()
     
     prompt = f"""
-    Actúa como un creador y guionista de YouTube humano de nivel senior (estilo periodista de divulgación científica y analista apasionado, como VisualPolitik o Veritasium).
+    Actúa como un analista y guionista senior de YouTube de periodismo científico e investigación tecnológica (estilo periodista riguroso con opinión fundada, como Veritasium o VisualPolitik).
     Tu tarea es transformar el siguiente informe en un PAQUETE COMPLETO DE PUBLICACIÓN Y GUION PARA YOUTUBE (Video Largo 8-10 Minutos).
     
-    DIRECTRICES DE ESTILO Y TONO (OBLIGATORIAS):
-    1. TONO HUMANO Y NATURAL: Escribe como un ser humano real conversando con otro apasionado de la tecnología. PROHIBIDO usar muletillas y clichés de IA como 'En un mundo donde...', 'Sumérgete en...', 'En la era digital...', 'Es fundamental destacar...', 'Un testimonio de...', 'Desentrañar...', 'En conclusión...'.
-    2. VISIÓN CONSTRUCTIVA Y ENFOQUE POSITIVO: NO seas apocalíptico ni alarmista sin sentido. Reconoce y resalta cuando la tecnología beneficia a la humanidad, resuelve problemas complejos o impulsa el bienestar social, combinando esto con análisis maduro de los desafíos.
-    3. RITMO DINÁMICO: Frases de longitud variada, analogías de la vida cotidiana y tono ágil.
+    LÍNEA EDITORIAL Y TESIS CENTRAL DEL CANAL (OBLIGATORIA):
+    "Sociedad 5.0 — Sensibilización sobre el nuevo paradigma emergente y la transición indispensable desde el tecnocentrismo hacia el bienestar humano."
+    
+    DIRECTRICES PERIODÍSTICAS Y DE TONO (ESTRICTAS):
+    1. PERIODISMO DE DOS CARAS ("AMBAS CARAS DE LA MONEDA"): No seas un mero propagandista ni tampoco un alarmista apocalíptico. Analiza rigurosamente tanto el potencial transformador y las oportunidades reales como los riesgos socioeconómicos, éticos, de empleo o soberanía tecnológica.
+    2. ESTADO DE MADUREZ DE LA TECNOLOGÍA: Debes aclarar explícitamente en el guion si la noticia trata sobre un producto comercial ya en el mercado, un prototipo funcional, un estudio científico/paper de laboratorio o una propuesta conceptual, e indicar si es posible "conseguir/usar" la tecnología hoy en día o dónde consultar el avance.
+    3. POSTURA HUMANA Y SUBJETIVA (SENTAR POSICIÓN): Como canal, sienta una postura firme: la tecnología solo tiene sentido si mejora genuinamente la calidad de vida y el bienestar humano. Cuestiona la fascinación puramente tecnocéntrica.
+    4. TONO NATURAL SIN CLICHÉS DE IA: Prohibido usar expresiones como 'En un mundo donde...', 'Sumérgete en...', 'En la era digital...', 'Es fundamental destacar...', 'Un testimonio de...', 'Desentrañar...', 'En conclusión...'. Escribe con el ritmo, fluidez y cercanía de un profesional real.
     
     DATOS DEL INFORME:
     - Fuente Original: {analisis.get('fuente_original')}
@@ -302,18 +306,18 @@ def generar_guion_youtube_paquete(analisis: dict) -> dict:
     - Narrativa: {analisis.get('narrativa_principal')}
     - Explicación: {analisis.get('explicacion_narrativa')}
     
-    DEBES RESPONDER ÚNICA Y EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO QUE TENGA LA SIGUIENTE ESTRUCTURA EXACTA (SIN TEXTO EXTRA ADICIONAL FUERA DEL JSON):
+    DEBES RESPONDER ÚNICA Y EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO CON LA SIGUIENTE ESTRUCTURA EXACTA:
     
     {{
         "titulos": [
-            "Título 1 Persuasivo de alto CTR (Dilema o Revelación positiva/impactante)",
-            "Título 2 Alternativo enfocado en Oportunidad/Transformación",
-            "Título 3 Alternativo enfocado en Futuro/Sociedad"
+            "Título 1 CTR (Dilema o revelar la promesa vs la realidad)",
+            "Título 2 CTR (Enfocado en impacto en el bienestar o futuro laboral)",
+            "Título 3 CTR (Geopolítica o el gran cambio de paradigma)"
         ],
-        "descripcion_seo": "Resumen atractivo de la descripción para YouTube Studio.\\n\\n📌 CAPÍTULOS / MARCAS DE TIEMPO:\\n0:00 - El Gancho\\n0:30 - Contexto Global\\n2:00 - Desarrollo\\n8:00 - Previsión 24 Meses\\n9:30 - Conclusión\\n\\n🔗 FUENTES OFICIALES:\\n" + ", ".join(analisis.get('enlaces_fuentes', [])) + "\\n\\n#IA #Tecnologia #Geopolitica #Sociedad50",
-        "etiquetas": "inteligencia artificial, geopolitica, economia global, sociedad 5.0, futuro del trabajo, tecnologia, avances tecnologicos, noticias tech",
+        "descripcion_seo": "Resumen periodístico para la descripción de YouTube.\\n\\n📌 CAPÍTULOS / MARCAS DE TIEMPO:\\n0:00 - El Gancho\\n0:30 - La Noticia y su Estado de Madurez (¿Producto o Estudio?)\\n2:00 - La Cara A: Avances y Soluciones\\n5:00 - La Cara B: Riesgos, Empleo y Ética\\n8:00 - Reflexión Sociedad 5.0 (Bienestar Humano)\\n9:30 - Cierre y Debate\\n\\n🔗 FUENTES OFICIALES:\\n" + ", ".join(analisis.get('enlaces_fuentes', [])) + "\\n\\n#IA #Tecnologia #Sociedad50 #BienestarHumano #Futuro",
+        "etiquetas": "inteligencia artificial, sociedad 5.0, bienestar humano, periodismo tecnologico, futuro del trabajo, tecnologia, innovacion, geopolitica",
         "prompts_visuales": [
-            "Prompt 1 en inglés detallado para Midjourney/Flux: Cinematic 8k, hyperrealistic, warm atmospheric lighting, cinematic wide shot, [elemento clave], 35mm lens --ar 16:9",
+            "Prompt 1 en inglés para Midjourney/Flux: Cinematic 8k, hyperrealistic wide shot, warm natural lighting, human-centric technology focus, 35mm lens --ar 16:9",
             "Prompt 2 en inglés...",
             "Prompt 3 en inglés..."
         ],
@@ -321,12 +325,12 @@ def generar_guion_youtube_paquete(analisis: dict) -> dict:
     }}
     
     REGLAS DEL GUION DENTRO DEL JSON:
-    - Gancho inicial de 30 segundos intrigante y humano.
-    - Contextualización de fuentes.
-    - 3 capítulos de desarrollo dinámico destacando el valor positivo y los retos reales.
-    - Previsión a 24 meses realista.
-    - Cierre con pregunta abierta para comentarios y CTA rápido.
-    - Incluye indicaciones de PROMPT IA: en inglés en cada escena clave.
+    - Gancho inicial atrapante (30s) que plantea el dilema humano.
+    - Presentación clara de la fuente y aclaración de si es un producto real o un estudio científico inicial.
+    - Desarrollo en 2 bloques contrapuestos: Oportunidades (Cara A) vs Retos y Sombras (Cara B).
+    - Reflexión central desde la perspectiva de la Sociedad 5.0 (bienestar humano sobre tecnocentrismo).
+    - Cierre con llamado al debate en comentarios.
+    - Prompts visuales en inglés (16:9) en cada escena clave.
     """
     
     max_reintentos = 3
@@ -363,29 +367,33 @@ def generar_guion_short_paquete(analisis: dict) -> dict:
     model_name = get_gemini_model_name()
     
     prompt = f"""
-    Actúa como un creador humano de YouTube Shorts experto en divulgación de IA y tecnología.
-    Transforma el siguiente informe en un GUION Y PAQUETE PARA YOUTUBE SHORT DE 1 MINUTO (Formato Vertical 9:16, máximo 140 palabras en narración).
+    Actúa como un creador y analista periodístico de YouTube Shorts sobre tecnología e impacto social.
+    Transforma el siguiente informe en un GUION Y PAQUETE PARA YOUTUBE SHORT DE 1 MINUTO (Formato Vertical 9:16, máximo 140 palabras).
+    
+    TESIS Y ENFOQUE DEL CANAL:
+    "Sociedad 5.0: Pasar del tecnocentrismo al bienestar humano. Mostrar las dos caras de la noticia con visión periodística compacta."
     
     REGLAS DE TONO:
-    - Tono fresco, conversacional, sin clichés de IA ('En un mundo donde...', 'Sumérgete en...').
-    - Destaca con energía cuando el avance tecnológico solucione un problema o beneficie a la gente.
+    1. DOS CARAS EN 60 SEGUNDOS: Enuncia la noticia rápida, menciona si es un producto real o un experimento/estudio, muestra la oportunidad y contrarréstala con el reto humano.
+    2. POSTURA HUMANISTA: Cierra con una frase contundente que recuerde que la tecnología debe servir al bienestar humano.
+    3. SIN CLICHÉS DE IA: Prohibido 'En un mundo donde...', 'Sumérgete en...', etc.
     
     INFORME BASE:
     - Fuente: {analisis.get('fuente_original')}
     - Resumen: {analisis.get('resumen_ejecutivo')}
     - Narrativa: {analisis.get('narrativa_principal')}
     
-    DEBES RESPONDER ÚNICA Y EXCLUSIVAMENTE CON UN JSON VÁLIDO CON LA SIGUIENTE ESTRUCTURA (SIN TEXTO ADICIONAL):
+    DEBES RESPONDER ÚNICA Y EXCLUSIVAMENTE CON UN JSON VÁLIDO CON LA SIGUIENTE ESTRUCTURA:
     
     {{
-        "titulo_short": "Título ultrallamativo para Short (máximo 60 caracteres con emojis)",
-        "hashtags": "#Shorts #IA #TechNews #Geopolitica #Innovacion",
+        "titulo_short": "Título llamativo para Short (máx 60 caracteres con emojis)",
+        "hashtags": "#Shorts #IA #Sociedad50 #BienestarHumano #TechNews",
         "prompts_visuales_916": [
-            "Prompt 1 en inglés vertical: Vertical cinematic portrait, 8k, hyperrealistic, vibrant aesthetic, [concepto], --ar 9:16",
-            "Prompt 2 en inglés vertical: ...",
-            "Prompt 3 en inglés vertical: ..."
+            "Prompt 1 vertical en inglés: Vertical cinematic portrait, 8k, hyperrealistic, warm human aesthetic, --ar 9:16",
+            "Prompt 2 vertical en inglés: ...",
+            "Prompt 3 vertical en inglés: ..."
         ],
-        "guion_short": "Markdown del Short de 60 segundos divididos en: [0-5s HOOK], [5-35s NOTICIA CLAVE], [35-50s IMPACTO POSITIVO/FUTURO], [50-60s CTA]. Usar VOZ EN OFF: y CORTE VISUAL (9:16):"
+        "guion_short": "Markdown del Short de 60s divididos en: [0-5s HOOK DILEMA], [5-25s LA NOTICIA (¿Producto o Estudio?)], [25-45s LAS DOS CARAS (Promesa vs Riesgo)], [45-60s POSTURA SOCIEDAD 5.0 Y CTA]. Usar VOZ EN OFF: y CORTE VISUAL (9:16):"
     }}
     """
     
@@ -407,6 +415,7 @@ def generar_guion_short_paquete(analisis: dict) -> dict:
                 return {"error": f"Fallo al generar Short: {e}"}
             import time
             time.sleep(2)
+
 
 import re
 import html
@@ -449,24 +458,25 @@ def extraer_narracion_limpia(guion_texto: str) -> str:
     return "\n\n".join(narracion) if narracion else guion_texto
 
 def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> str:
-    """Genera una aplicación web HTML5 independiente para Teleprompter libre de distracciones."""
+    """Genera una aplicación web HTML5 independiente para Teleprompter libre de distracciones y adaptada a móviles."""
     parrafos_html = "".join([f"<p style='margin-bottom: 2rem;'>{html.escape(p)}</p>" for p in narracion_limpia.split("\n\n") if p.strip()])
     
     return f"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Studio Teleprompter - {html.escape(titulo)}</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        body, html {{ width: 100%; height: 100%; overflow: hidden; background: #09090b; font-family: system-ui, -apple-system, sans-serif; color: #fff; }}
+        body, html {{ width: 100%; height: 100%; overflow: hidden; background: #09090b; font-family: system-ui, -apple-system, sans-serif; color: #fff; touch-action: manipulation; }}
         
         #webcam {{
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover; z-index: 1; transform: scaleX(-1);
+            -webkit-transform: scaleX(-1);
         }}
-        #webcam.no-mirror {{ transform: none; }}
+        #webcam.no-mirror {{ transform: none; -webkit-transform: none; }}
         
         #overlay {{
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -476,52 +486,71 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         
         #prompter-box {{
             position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-            width: 85%; max-width: 900px; height: 100%; z-index: 3;
+            width: 88%; max-width: 900px; height: 100%; z-index: 3;
             overflow-y: scroll; scroll-behavior: auto;
-            padding: 45vh 2rem; scrollbar-width: none;
+            padding: 40vh 1.5rem 50vh; scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
         }}
         #prompter-box::-webkit-scrollbar {{ display: none; }}
         
         #prompter-box.mode-916 {{
-            width: 90vw; max-width: 420px;
+            width: 92vw; max-width: 420px;
             border-left: 2px dashed rgba(37, 99, 235, 0.4);
             border-right: 2px dashed rgba(37, 99, 235, 0.4);
         }}
         
         .script-content {{
-            font-size: 38px; font-weight: 700; line-height: 1.6;
+            font-size: 34px; font-weight: 700; line-height: 1.6;
             text-align: center; color: #ffffff; text-shadow: 0 3px 12px rgba(0,0,0,0.95);
-            transition: font-size 0.2s ease;
+            transition: font-size 0.2s ease; word-break: break-word;
         }}
         .script-content.mirrored {{
-            transform: scaleX(-1);
+            transform: scaleX(-1); -webkit-transform: scaleX(-1);
         }}
         
         #controls-bar {{
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 10; background: rgba(18, 18, 24, 0.92); backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.15); border-radius: 50px;
-            padding: 10px 24px; display: flex; align-items: center; gap: 16px;
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 100; background: rgba(18, 18, 24, 0.95); backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 30px;
+            padding: 8px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.9); transition: opacity 0.4s ease;
+            width: 92vw; max-width: 850px; max-height: 45vh; overflow-y: auto;
         }}
         #controls-bar:hover, body.paused #controls-bar {{ opacity: 1; }}
-        body.playing #controls-bar {{ opacity: 0.25; }}
+        body.playing #controls-bar {{ opacity: 0.35; }}
 
         .btn {{
-            background: #2563eb; color: white; border: none; padding: 10px 18px;
-            border-radius: 30px; font-weight: 700; cursor: pointer; font-size: 14px;
-            display: flex; align-items: center; gap: 6px; transition: background 0.2s;
+            background: #2563eb; color: white; border: none; padding: 10px 16px;
+            border-radius: 25px; font-weight: 700; cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;
+            min-height: 44px; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
         }}
+        .btn:active {{ transform: scale(0.97); }}
         .btn:hover {{ background: #1d4ed8; }}
-        .btn-sec {{ background: rgba(255,255,255,0.15); }}
-        .btn-sec:hover {{ background: rgba(255,255,255,0.25); }}
+        .btn-sec {{ background: rgba(255,255,255,0.18); }}
+        .btn-sec:hover {{ background: rgba(255,255,255,0.28); }}
 
-        .ctrl-group {{ display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ccc; }}
-        input[type="range"] {{ accent-color: #2563eb; cursor: pointer; }}
+        .ctrl-group {{ display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; background: rgba(255,255,255,0.06); padding: 4px 10px; border-radius: 12px; }}
+        input[type="range"] {{ accent-color: #2563eb; cursor: pointer; height: 30px; }}
+
+        @media (max-width: 768px) {{
+            #controls-bar {{
+                bottom: 12px; padding: 10px 8px; border-radius: 20px; width: 95vw; gap: 6px;
+            }}
+            .btn {{
+                padding: 10px 12px; font-size: 13px; min-height: 44px; flex: 1 1 auto;
+            }}
+            .ctrl-group {{
+                flex: 1 1 45%; justify-content: space-between; font-size: 11px;
+            }}
+            .script-content {{ font-size: 26px; }}
+            #prompter-box {{ padding: 30vh 1rem 40vh; width: 96%; }}
+        }}
     </style>
 </head>
 <body class="paused">
-    <video id="webcam" autoplay playsinline muted></video>
+    <video id="webcam" autoplay playsinline webkit-playsinline muted></video>
     <div id="overlay"></div>
     
     <div id="prompter-box">
@@ -529,16 +558,16 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
     </div>
     
     <div id="controls-bar">
-        <button id="btn-toggle" class="btn">▶️ Iniciar (Espacio)</button>
+        <button id="btn-toggle" class="btn" style="flex: 1 1 100%; background: #2563eb; font-size: 15px;">▶️ INICIAR / PAUSAR TELEPROMPTER</button>
         
         <div class="ctrl-group">
-            <label>⚡ Velocidad:</label>
+            <label>⚡ Vel:</label>
             <input type="range" id="speed" min="1" max="15" value="4">
         </div>
         
         <div class="ctrl-group">
-            <label>🔠 Tamaño:</label>
-            <input type="range" id="fontsize" min="20" max="64" value="38">
+            <label>🔠 Texto:</label>
+            <input type="range" id="fontsize" min="18" max="60" value="30">
         </div>
 
         <button id="btn-mode" class="btn btn-sec">🖥️ 16:9 / 9:16</button>
@@ -549,9 +578,14 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 
     <script>
         const video = document.getElementById('webcam');
-        navigator.mediaDevices.getUserMedia({{ video: {{ facingMode: 'user' }} }})
-            .then(stream => {{ video.srcObject = stream; }})
-            .catch(err => console.log("Camara no disponible o denegada: ", err));
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {{
+            navigator.mediaDevices.getUserMedia({{ video: {{ facingMode: 'user', width: {{ ideal: 1280 }}, height: {{ ideal: 720 }} }} }})
+                .then(stream => {{ 
+                    video.srcObject = stream;
+                    video.play().catch(e => console.log("video play error:", e));
+                }})
+                .catch(err => console.log("Camara no disponible o denegada: ", err));
+        }}
 
         const box = document.getElementById('prompter-box');
         const textNode = document.getElementById('text-node');
@@ -568,7 +602,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 
         function scrollStep() {{
             if (!isPlaying) return;
-            box.scrollTop += parseFloat(speedInput.value) * 0.5;
+            box.scrollTop += parseFloat(speedInput.value) * 0.4;
             animId = requestAnimationFrame(scrollStep);
         }}
 
@@ -577,12 +611,14 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             if (isPlaying) {{
                 document.body.classList.remove('paused');
                 document.body.classList.add('playing');
-                btnToggle.innerText = '⏸️ Pausar (Espacio)';
+                btnToggle.innerText = '⏸️ PAUSAR SCROLL';
+                btnToggle.style.background = '#dc2626';
                 scrollStep();
             }} else {{
                 document.body.classList.remove('playing');
                 document.body.classList.add('paused');
-                btnToggle.innerText = '▶️ Iniciar (Espacio)';
+                btnToggle.innerText = '▶️ INICIAR SCROLL';
+                btnToggle.style.background = '#2563eb';
                 cancelAnimationFrame(animId);
             }}
         }}
@@ -607,9 +643,17 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 
         btnFS.addEventListener('click', () => {{
             if (!document.fullscreenElement) {{
-                document.documentElement.requestFullscreen();
+                if (document.documentElement.requestFullscreen) {{
+                    document.documentElement.requestFullscreen();
+                }} else if (document.documentElement.webkitRequestFullscreen) {{
+                    document.documentElement.webkitRequestFullscreen();
+                }}
             }} else {{
-                document.exitFullscreen();
+                if (document.exitFullscreen) {{
+                    document.exitFullscreen();
+                }} else if (document.webkitExitFullscreen) {{
+                    document.webkitExitFullscreen();
+                }}
             }}
         }});
 
@@ -707,9 +751,10 @@ lista_reportes = obtener_todos_reportes(db)
 # =====================================================================
 # 6. Pestañas de Navegación
 # =====================================================================
-tab_explorar, tab_shorts, tab_nuevo_analisis, tab_ingesta_automatica = st.tabs([
+tab_explorar, tab_shorts, tab_historial, tab_nuevo_analisis, tab_ingesta_automatica = st.tabs([
     "🔍 Guion YouTube (Largo)", 
     "📱 Shorts de IA (1 Minuto)",
+    "📚 Historial de Guiones",
     "⚙️ Procesar Nuevo Documento", 
     "📡 Ingesta Automática"
 ])
@@ -800,83 +845,101 @@ with tab_explorar:
             st.markdown("</div>", unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.subheader("🎬 Generar Paquete Completo para YouTube Studio (10 Minutos)")
-            st.info("Produce automáticamente: Títulos CTR, Descripción SEO con Timestamps, Etiquetas y Prompts Visuales de IA en 16:9.")
+            st.subheader("🎬 Paquete Completo para YouTube Studio (10 Minutos)")
             
-            btn_guion = st.button("Generar Paquete Completo para YouTube Largo 🚀", type="primary", use_container_width=True, key="btn_youtube_largo")
+            # Verificar si ya existe un paquete largo guardado en Firestore
+            tiene_paquete_guardado = "paquete_largo" in reporte_selec and isinstance(reporte_selec["paquete_largo"], dict)
             
+            if tiene_paquete_guardado:
+                st.success("✅ Guion guardado previamente en Firestore. Cargado automáticamente sin gastar tokens.")
+                btn_guion = st.button("🔄 Volver a Generar Paquete con IA (Regenerar)", type="secondary", use_container_width=True, key="btn_youtube_largo")
+                pkg = reporte_selec["paquete_largo"]
+            else:
+                st.info("Produce automáticamente: Títulos CTR, Descripción SEO con Timestamps, Etiquetas y Prompts Visuales de IA en 16:9 (periodismo de 2 caras y bienestar humano).")
+                btn_guion = st.button("Generar Paquete Completo para YouTube Largo 🚀", type="primary", use_container_width=True, key="btn_youtube_largo")
+                pkg = None
+
             if btn_guion:
-                with st.spinner("Gemini 3.5 Flash creando el paquete de contenido para YouTube..."):
-                    pkg = generar_guion_youtube_paquete(reporte_selec)
+                with st.spinner("Gemini 3.5 Flash creando el paquete periodístico para YouTube (Sociedad 5.0)..."):
+                    pkg_nuevo = generar_guion_youtube_paquete(reporte_selec)
                 
-                if "error" in pkg:
-                    st.error(pkg["error"])
+                if "error" in pkg_nuevo:
+                    st.error(pkg_nuevo["error"])
                 else:
-                    st.success("¡Paquete completo generado exitosamente!")
+                    pkg = pkg_nuevo
+                    reporte_selec["paquete_largo"] = pkg
+                    # Guardar inmediatamente en Firestore
+                    guardar_paquete_guion_firestore(db, reporte_selec["id"], "paquete_largo", pkg)
+                    st.success("¡Paquete generado y guardado en Firestore exitosamente!")
+
+            if pkg and "error" not in pkg:
+                subtab_titulos, subtab_desc, subtab_tags, subtab_prompts, subtab_guion, subtab_prompter = st.tabs([
+                    "📌 Títulos CTR", 
+                    "📝 Descripción SEO", 
+                    "🏷️ Etiquetas (Tags)", 
+                    "🎨 Prompts IA (16:9)",
+                    "📄 Guion Completo",
+                    "🎙️ Teleprompter Studio"
+                ])
+                
+                with subtab_titulos:
+                    st.markdown("### 🎯 Opción de Títulos Persuasivos (Prueba A/B):")
+                    for idx, tit in enumerate(pkg.get("titulos", [])):
+                        st.text_input(f"Opción {idx+1}:", value=tit, key=f"tit_largo_{reporte_selec['id'][:6]}_{idx}")
+                        
+                with subtab_desc:
+                    st.markdown("### 📝 Descripción Lista para Copiar:")
+                    st.text_area("Copia esto directamente a YouTube Studio:", value=pkg.get("descripcion_seo", ""), height=250, key=f"desc_largo_{reporte_selec['id'][:6]}")
                     
-                    subtab_titulos, subtab_desc, subtab_tags, subtab_prompts, subtab_guion, subtab_prompter = st.tabs([
-                        "📌 Títulos CTR", 
-                        "📝 Descripción SEO", 
-                        "🏷️ Etiquetas (Tags)", 
-                        "🎨 Prompts IA (16:9)",
-                        "📄 Guion Completo",
-                        "🎙️ Teleprompter Studio"
-                    ])
+                with subtab_tags:
+                    st.markdown("### 🏷️ Etiquetas (Tags):")
+                    st.text_area("Copia y pega en la sección de Etiquetas:", value=pkg.get("etiquetas", ""), height=100, key=f"tags_largo_{reporte_selec['id'][:6]}")
                     
-                    with subtab_titulos:
-                        st.markdown("### 🎯 Opción de Títulos Persuasivos (Prueba A/B):")
-                        for idx, tit in enumerate(pkg.get("titulos", [])):
-                            st.text_input(f"Opción {idx+1}:", value=tit, key=f"tit_largo_{idx}")
-                            
-                    with subtab_desc:
-                        st.markdown("### 📝 Descripción Lista para Copiar:")
-                        st.text_area("Copia esto directamente a YouTube Studio:", value=pkg.get("descripcion_seo", ""), height=250, key="desc_largo")
+                with subtab_prompts:
+                    st.markdown("### 🎨 Prompts Visuales para Midjourney / Flux / Runway (16:9):")
+                    for idx, pmt in enumerate(pkg.get("prompts_visuales", [])):
+                        st.text_input(f"Prompt IA Scene {idx+1}:", value=pmt, key=f"pmt_largo_{reporte_selec['id'][:6]}_{idx}")
                         
-                    with subtab_tags:
-                        st.markdown("### 🏷️ Etiquetas (Tags):")
-                        st.text_area("Copia y pega en la sección de Etiquetas:", value=pkg.get("etiquetas", ""), height=100, key="tags_largo")
-                        
-                    with subtab_prompts:
-                        st.markdown("### 🎨 Prompts Visuales para Midjourney / Flux / Runway (16:9):")
-                        for idx, pmt in enumerate(pkg.get("prompts_visuales", [])):
-                            st.text_input(f"Prompt IA Scene {idx+1}:", value=pmt, key=f"pmt_largo_{idx}")
-                            
-                    with subtab_guion:
-                        st.markdown("### 📜 Guion Literario Completo (10 Min):")
-                        guion_txt = pkg.get("guion_completo", "")
-                        st.markdown(guion_txt)
-                        st.download_button(
-                            label="📥 Descargar Paquete Completo (.md)",
-                            data=f"# PAQUETE YOUTUBE\n\n## TÍTULOS\n" + "\n".join(pkg.get("titulos", [])) + f"\n\n## DESCRIPCIÓN SEO\n{pkg.get('descripcion_seo')}\n\n## ETIQUETAS\n{pkg.get('etiquetas')}\n\n## GUION COMPLETO\n{guion_txt}",
-                            file_name=f"paquete_youtube_{reporte_selec.get('id')[:6]}.md",
-                            mime="text/markdown",
-                            use_container_width=True
-                        )
-                        
-                    with subtab_prompter:
-                        st.markdown("### 🎙️ Studio Teleprompter (Grabación sin distracciones)")
-                        st.info("Abre el Teleprompter en una ventana independiente limpia con cámara en vivo, o descarga la narración filtrada.")
-                        narracion_largo_limpia = extraer_narracion_limpia(pkg.get("guion_completo", ""))
-                        
-                        render_teleprompter_button(narracion_largo_limpia, pkg.get("titulos", ["YouTube Studio"])[0])
-                        
-                        st.markdown("#### 📝 Texto de Locución Filtrado (Solo Narración):")
-                        st.text_area("Copiar para Google Docs / Google Drive / Apps externas:", value=narracion_largo_limpia, height=220, key="txt_prompter_largo")
-                        
-                        st.download_button(
-                            label="📥 Descargar Solo Narración (.txt)",
-                            data=narracion_largo_limpia,
-                            file_name=f"narracion_largo_{reporte_selec.get('id')[:6]}.txt",
-                            mime="text/plain",
-                            use_container_width=True
-                        )
+                with subtab_guion:
+                    st.markdown("### 📜 Guion Literario Completo (10 Min):")
+                    guion_txt = pkg.get("guion_completo", "")
+                    st.markdown(guion_txt)
+                    
+                    data_md = f"# PAQUETE YOUTUBE LARGO (SOCIEDAD 5.0)\n\n## TÍTULOS\n" + "\n".join(pkg.get("titulos", [])) + f"\n\n## DESCRIPCIÓN SEO\n{pkg.get('descripcion_seo')}\n\n## ETIQUETAS\n{pkg.get('etiquetas')}\n\n## GUION COMPLETO\n{guion_txt}"
+                    st.download_button(
+                        label="📥 Descargar Paquete Completo (.md)",
+                        data=data_md,
+                        file_name=f"paquete_youtube_{reporte_selec.get('id')[:6]}.md",
+                        mime="text/markdown",
+                        use_container_width=True,
+                        key=f"btn_dl_md_largo_{reporte_selec['id'][:6]}"
+                    )
+                    
+                with subtab_prompter:
+                    st.markdown("### 🎙️ Studio Teleprompter (Grabación sin distracciones)")
+                    st.info("Abre el Teleprompter adaptativo para móviles y PC con cámara en directo.")
+                    narracion_largo_limpia = extraer_narracion_limpia(pkg.get("guion_completo", ""))
+                    
+                    render_teleprompter_button(narracion_largo_limpia, pkg.get("titulos", ["YouTube Studio"])[0])
+                    
+                    st.markdown("#### 📝 Texto de Locución Filtrado (Solo Narración):")
+                    st.text_area("Copiar para Google Docs / Google Drive / Apps externas:", value=narracion_largo_limpia, height=220, key=f"txt_prompter_largo_{reporte_selec['id'][:6]}")
+                    
+                    st.download_button(
+                        label="📥 Descargar Solo Narración (.txt)",
+                        data=narracion_largo_limpia,
+                        file_name=f"narracion_largo_{reporte_selec.get('id')[:6]}.txt",
+                        mime="text/plain",
+                        use_container_width=True,
+                        key=f"btn_dl_txt_largo_{reporte_selec['id'][:6]}"
+                    )
 
 # ---------------------------------------------------------------------
 # PESTAÑA 2: NUEVO MÓDULO DE SHORTS DE IA (1 MINUTO / DIARIO)
 # ---------------------------------------------------------------------
 with tab_shorts:
     st.subheader("📱 Motor de Creación para YouTube Shorts (1 Minuto / Diario)")
-    st.write("Selecciona cualquier reporte de Firestore y genera al instante un Short de 60 segundos con formato vertical (9:16), ritmo acelerado y prompts visuales listos para publicación diaria.")
+    st.write("Selecciona cualquier reporte de Firestore y genera un Short de 60 segundos con formato vertical (9:16), dos caras de la noticia y postura enfocada en el bienestar humano.")
     
     if not lista_reportes:
         st.info("Ingresa o descarga primero un informe en Firestore para generar Shorts.")
@@ -889,54 +952,168 @@ with tab_shorts:
             
             st.markdown(f"**Fuente Seleccionada:** {reporte_short.get('fuente_original')} | **Narrativa:** {reporte_short.get('narrativa_principal')}")
             
-            btn_gen_short = st.button("Generar YouTube Short de 1 Minuto ⚡", type="primary", use_container_width=True, key="btn_short_action")
+            tiene_short_guardado = "paquete_short" in reporte_short and isinstance(reporte_short["paquete_short"], dict)
             
+            if tiene_short_guardado:
+                st.success("✅ Short guardado previamente en Firestore. Cargado automáticamente sin gastar tokens.")
+                btn_gen_short = st.button("🔄 Volver a Generar Short con IA (Regenerar)", type="secondary", use_container_width=True, key="btn_short_action")
+                pkg_short = reporte_short["paquete_short"]
+            else:
+                btn_gen_short = st.button("Generar YouTube Short de 1 Minuto ⚡", type="primary", use_container_width=True, key="btn_short_action")
+                pkg_short = None
+
             if btn_gen_short:
-                with st.spinner("Gemini 3.5 Flash condensando el informe en un Short vertical de 60 segundos..."):
-                    pkg_short = generar_guion_short_paquete(reporte_short)
+                with st.spinner("Gemini 3.5 Flash condensando el informe en un Short vertical de 60 segundos con perspectiva periodística..."):
+                    pkg_short_nuevo = generar_guion_short_paquete(reporte_short)
                     
-                if "error" in pkg_short:
-                    st.error(pkg_short["error"])
+                if "error" in pkg_short_nuevo:
+                    st.error(pkg_short_nuevo["error"])
                 else:
-                    st.success("¡Short generado exitosamente!")
+                    pkg_short = pkg_short_nuevo
+                    reporte_short["paquete_short"] = pkg_short
+                    # Guardar inmediatamente en Firestore
+                    guardar_paquete_guion_firestore(db, reporte_short["id"], "paquete_short", pkg_short)
+                    st.success("¡Short generado y guardado en Firestore exitosamente!")
+
+            if pkg_short and "error" not in pkg_short:
+                st.markdown(f"### 📌 Título del Short: `{pkg_short.get('titulo_short')}`")
+                st.markdown(f"**Hashtags:** `{pkg_short.get('hashtags')}`")
+                
+                s_col1, s_col2 = st.columns([7, 5])
+                with s_col1:
+                    st.markdown("#### 📜 Guion Literario de 60 Segundos:")
+                    st.markdown(pkg_short.get("guion_short", ""))
                     
-                    st.markdown(f"### 📌 Título del Short: `{pkg_short.get('titulo_short')}`")
-                    st.markdown(f"**Hashtags:** `{pkg_short.get('hashtags')}`")
-                    
-                    s_col1, s_col2 = st.columns([7, 5])
-                    with s_col1:
-                        st.markdown("#### 📜 Guion Literario de 60 Segundos:")
-                        st.markdown(pkg_short.get("guion_short", ""))
+                with s_col2:
+                    st.markdown("#### 📱 Prompts Visuales Verticals (9:16):")
+                    for idx, p916 in enumerate(pkg_short.get("prompts_visuales_916", [])):
+                        st.text_area(f"Prompt Vertical {idx+1} (--ar 9:16):", value=p916, height=90, key=f"short_pmt_{reporte_short['id'][:6]}_{idx}")
                         
-                    with s_col2:
-                        st.markdown("#### 📱 Prompts Visuales Verticals (9:16):")
-                        for idx, p916 in enumerate(pkg_short.get("prompts_visuales_916", [])):
-                            st.text_area(f"Prompt Vertical {idx+1} (--ar 9:16):", value=p916, height=90, key=f"short_pmt_{idx}")
+                st.markdown("---")
+                st.markdown("### 🎙️ Teleprompter Studio para Short (9:16)")
+                narracion_short_limpia = extraer_narracion_limpia(pkg_short.get("guion_short", ""))
+                render_teleprompter_button(narracion_short_limpia, pkg_short.get("titulo_short", "Short IA"))
+                
+                st.text_area("Copiar locución del Short a Google Docs / Drive:", value=narracion_short_limpia, height=140, key=f"txt_prompter_short_{reporte_short['id'][:6]}")
+                
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    data_short_md = f"# SHORT YOUTUBE: {pkg_short.get('titulo_short')}\n\nHashtags: {pkg_short.get('hashtags')}\n\n## GUION\n{pkg_short.get('guion_short')}\n\n## PROMPTS 9:16\n" + "\n".join(pkg_short.get("prompts_visuales_916", []))
+                    st.download_button(
+                        label="📥 Descargar Guion Completo de Short (.md)",
+                        data=data_short_md,
+                        file_name=f"short_youtube_{reporte_short.get('id')[:6]}.md",
+                        mime="text/markdown",
+                        use_container_width=True,
+                        key=f"btn_dl_md_short_{reporte_short['id'][:6]}"
+                    )
+                with col_d2:
+                    st.download_button(
+                        label="📥 Descargar Solo Narración del Short (.txt)",
+                        data=narracion_short_limpia,
+                        file_name=f"narracion_short_{reporte_short.get('id')[:6]}.txt",
+                        mime="text/plain",
+                        use_container_width=True,
+                        key=f"btn_dl_txt_short_{reporte_short['id'][:6]}"
+                    )
+
+# ---------------------------------------------------------------------
+# PESTAÑA 3: PESTAÑA DEDICADA DE HISTORIAL DE GUIONES
+# ---------------------------------------------------------------------
+with tab_historial:
+    st.subheader("📚 Historial de Guiones Guardados")
+    st.write("Consulta y descarga en cualquier momento todos los guiones (Largos y Shorts) previamente generados sin necesidad de volver a gastar tokens de la IA.")
+    
+    # Filtrar reportes que tengan al menos un guion guardado
+    reportes_con_guion = [r for r in lista_reportes if "paquete_largo" in r or "paquete_short" in r]
+    
+    if not reportes_con_guion:
+        st.info("Aún no hay guiones generados en el historial. Ve a las pestañas 'Guion YouTube (Largo)' o 'Shorts de IA' para crear el primero.")
+    else:
+        filtro_tipo = st.radio("Filtrar por formato:", ["Todos los guiones", "Solo Videos Largos (10 Min)", "Solo Shorts (1 Min)"], horizontal=True)
+        
+        reportes_filtrados = reportes_con_guion
+        if filtro_tipo == "Solo Videos Largos (10 Min)":
+            reportes_filtrados = [r for r in reportes_con_guion if "paquete_largo" in r]
+        elif filtro_tipo == "Solo Shorts (1 Min)":
+            reportes_filtrados = [r for r in reportes_con_guion if "paquete_short" in r]
+            
+        if not reportes_filtrados:
+            st.warning("No se encontraron guiones con el filtro seleccionado.")
+        else:
+            opciones_historial = {
+                f"[{r.get('fuente_original')}] - {r.get('resumen_ejecutivo')[:60]}... (ID: {r.get('id')[:6]})": r 
+                for r in reportes_filtrados
+            }
+            sel_hist_key = st.selectbox("Selecciona un guion guardado del historial:", list(opciones_historial.keys()), key="select_historial_main")
+            
+            if sel_hist_key:
+                rep_h = opciones_historial[sel_hist_key]
+                st.markdown("---")
+                
+                # Pestañas secundarias para alternar entre Largo y Short si existen ambos
+                formatos_disponibles = []
+                if "paquete_largo" in rep_h:
+                    formatos_disponibles.append("🎬 Video Largo (10 Min)")
+                if "paquete_short" in rep_h:
+                    formatos_disponibles.append("📱 Short (1 Minuto)")
+                    
+                subtabs_h = st.tabs(formatos_disponibles)
+                
+                for idx_fmt, fmt_nombre in enumerate(formatos_disponibles):
+                    with subtabs_h[idx_fmt]:
+                        if "Video Largo" in fmt_nombre:
+                            pkg_h_largo = rep_h["paquete_largo"]
+                            st.markdown(f"### 🎬 Paquete Guardado de Video Largo — {rep_h.get('fuente_original')}")
                             
-                    st.markdown("---")
-                    st.markdown("### 🎙️ Teleprompter Studio para Short (9:16)")
-                    narracion_short_limpia = extraer_narracion_limpia(pkg_short.get("guion_short", ""))
-                    render_teleprompter_button(narracion_short_limpia, pkg_short.get("titulo_short", "Short IA"))
-                    
-                    st.text_area("Copiar locución del Short a Google Docs / Drive:", value=narracion_short_limpia, height=140, key="txt_prompter_short")
-                    
-                    col_d1, col_d2 = st.columns(2)
-                    with col_d1:
-                        st.download_button(
-                            label="📥 Descargar Guion Completo de Short (.md)",
-                            data=f"# SHORT: {pkg_short.get('titulo_short')}\n\nHashtags: {pkg_short.get('hashtags')}\n\n## GUION\n{pkg_short.get('guion_short')}\n\n## PROMPTS 9:16\n" + "\n".join(pkg_short.get("prompts_visuales_916", [])),
-                            file_name=f"short_youtube_{reporte_short.get('id')[:6]}.md",
-                            mime="text/markdown",
-                            use_container_width=True
-                        )
-                    with col_d2:
-                        st.download_button(
-                            label="📥 Descargar Solo Narración del Short (.txt)",
-                            data=narracion_short_limpia,
-                            file_name=f"narracion_short_{reporte_short.get('id')[:6]}.txt",
-                            mime="text/plain",
-                            use_container_width=True
-                        )
+                            h_t1, h_t2, h_t3, h_t4, h_t5, h_t6 = st.tabs(["📌 Títulos", "📝 Descripción SEO", "🏷️ Tags", "🎨 Prompts 16:9", "📄 Guion", "🎙️ Teleprompter"])
+                            with h_t1:
+                                for i, t in enumerate(pkg_h_largo.get("titulos", [])):
+                                    st.text_input(f"Título {i+1}:", value=t, key=f"hist_tit_l_{rep_h['id'][:6]}_{i}")
+                            with h_t2:
+                                st.text_area("Descripción SEO:", value=pkg_h_largo.get("descripcion_seo", ""), height=200, key=f"hist_desc_l_{rep_h['id'][:6]}")
+                            with h_t3:
+                                st.text_area("Etiquetas:", value=pkg_h_largo.get("etiquetas", ""), height=80, key=f"hist_tags_l_{rep_h['id'][:6]}")
+                            with h_t4:
+                                for i, p in enumerate(pkg_h_largo.get("prompts_visuales", [])):
+                                    st.text_input(f"Prompt Scene {i+1}:", value=p, key=f"hist_pmt_l_{rep_h['id'][:6]}_{i}")
+                            with h_t5:
+                                guion_txt_h = pkg_h_largo.get("guion_completo", "")
+                                st.markdown(guion_txt_h)
+                                data_md_h = f"# PAQUETE YOUTUBE LARGO\n\n## TÍTULOS\n" + "\n".join(pkg_h_largo.get("titulos", [])) + f"\n\n## DESCRIPCIÓN SEO\n{pkg_h_largo.get('descripcion_seo')}\n\n## ETIQUETAS\n{pkg_h_largo.get('etiquetas')}\n\n## GUION COMPLETO\n{guion_txt_h}"
+                                st.download_button("📥 Descargar Paquete (.md)", data=data_md_h, file_name=f"historial_largo_{rep_h['id'][:6]}.md", mime="text/markdown", use_container_width=True, key=f"btn_dl_hist_md_l_{rep_h['id'][:6]}")
+                            with h_t6:
+                                locucion_l = extraer_narracion_limpia(pkg_h_largo.get("guion_completo", ""))
+                                render_teleprompter_button(locucion_l, pkg_h_largo.get("titulos", ["YouTube Studio"])[0])
+                                st.text_area("Texto de Locución:", value=locucion_l, height=180, key=f"hist_txt_l_{rep_h['id'][:6]}")
+                                st.download_button("📥 Descargar Locución (.txt)", data=locucion_l, file_name=f"narracion_largo_{rep_h['id'][:6]}.txt", mime="text/plain", use_container_width=True, key=f"btn_dl_hist_txt_l_{rep_h['id'][:6]}")
+                                
+                        elif "Short" in fmt_nombre:
+                            pkg_h_short = rep_h["paquete_short"]
+                            st.markdown(f"### 📱 Short Guardado de 1 Minuto — {rep_h.get('fuente_original')}")
+                            st.markdown(f"**Título:** `{pkg_h_short.get('titulo_short')}`")
+                            st.markdown(f"**Hashtags:** `{pkg_h_short.get('hashtags')}`")
+                            
+                            sc1, sc2 = st.columns([7, 5])
+                            with sc1:
+                                st.markdown("#### 📜 Guion de 60 Segundos:")
+                                st.markdown(pkg_h_short.get("guion_short", ""))
+                            with sc2:
+                                st.markdown("#### 📱 Prompts 9:16:")
+                                for i, p in enumerate(pkg_h_short.get("prompts_visuales_916", [])):
+                                    st.text_area(f"Prompt {i+1}:", value=p, height=80, key=f"hist_pmt_s_{rep_h['id'][:6]}_{i}")
+                                    
+                            locucion_s = extraer_narracion_limpia(pkg_h_short.get("guion_short", ""))
+                            render_teleprompter_button(locucion_s, pkg_h_short.get("titulo_short", "Short IA"))
+                            
+                            col_dh1, col_dh2 = st.columns(2)
+                            with col_dh1:
+                                data_short_md_h = f"# SHORT: {pkg_h_short.get('titulo_short')}\n\nHashtags: {pkg_h_short.get('hashtags')}\n\n## GUION\n{pkg_h_short.get('guion_short')}\n\n## PROMPTS 9:16\n" + "\n".join(pkg_h_short.get("prompts_visuales_916", []))
+                                st.download_button("📥 Descargar Short (.md)", data=data_short_md_h, file_name=f"historial_short_{rep_h['id'][:6]}.md", mime="text/markdown", use_container_width=True, key=f"btn_dl_hist_md_s_{rep_h['id'][:6]}")
+                            with col_dh2:
+                                st.download_button("📥 Descargar Locución Short (.txt)", data=locucion_s, file_name=f"narracion_short_{rep_h['id'][:6]}.txt", mime="text/plain", use_container_width=True, key=f"btn_dl_hist_txt_s_{rep_h['id'][:6]}")
+
+
 
 # ---------------------------------------------------------------------
 # PESTAÑA 3: PROCESAR NUEVO DOCUMENTO

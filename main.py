@@ -273,6 +273,32 @@ def guardar_en_firestore(db: firestore.firestore.Client, analisis: dict) -> str:
         print(f"[ERROR] Error al escribir en la base de datos Firestore: {e}")
         raise
 
+def guardar_paquete_guion_firestore(db: firestore.firestore.Client, doc_id: str, campo: str, paquete_datos: dict) -> bool:
+    """
+    Actualiza un documento existente en Firestore agregando o modificando
+    el paquete de guion (largo o short) en la colección 'analisis_sociedad'.
+    
+    Argumentos:
+        db (firestore.firestore.Client): Cliente de Firestore.
+        doc_id (str): ID del documento a actualizar.
+        campo (str): Nombre del campo ('paquete_largo' o 'paquete_short').
+        paquete_datos (dict): Datos del paquete generado por Gemini.
+        
+    Retorna:
+        bool: True si la actualización fue exitosa.
+    """
+    try:
+        doc_ref = db.collection("analisis_sociedad").document(doc_id)
+        doc_ref.update({
+            campo: paquete_datos,
+            f"{campo}_fecha_guardado": datetime.now(timezone.utc)
+        })
+        print(f"[FIRESTORE] Campo '{campo}' actualizado exitosamente en documento ID: {doc_id}")
+        return True
+    except Exception as e:
+        print(f"[ERROR] Error al actualizar paquete de guion en Firestore: {e}")
+        return False
+
 # =====================================================================
 # 5. Función Integradora (Orquestación del Flujo)
 # =====================================================================

@@ -35,6 +35,15 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   8. **Corrección de Inicialización en Nube de Firestore**: Fijado de paso de `project_id` y `credentials` explícitos en `gcloud_firestore.Client()` en [main.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/main.py) para solucionar el fallo `Project was not passed and could not be determined from the environment` en Streamlit Cloud.
   9. **Refactorización Binaria Base64 para Teleprompter**: Solución completa del error `Uncaught SyntaxError` mediante codificación Base64 Uint8Array para el lanzamiento del Teleprompter en popup/nueva ventana y adición de visor desplegable alternativo en pantalla completa compatible con navegadores móviles estrictos.
 
+### Sesión: 11 de Agosto de 2026 (v2.1)
+* **Objetivo**: Optimización responsive y cámara para móviles (iPhone 15 / iOS Safari), persistencia de guiones en Firestore con pestaña dedicada de Historial sin pérdida de estado al descargar, e integración del enfoque periodístico de "dos caras de la moneda" centrado en el bienestar humano (Sociedad 5.0).
+* **Logros**:
+  1. **Teleprompter Móvil Adaptativo (iOS / Safari)**: Rediseño completo del CSS/JS en `generar_html_teleprompter_standalone()` en [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) para pantallas táctiles angostas (`@media (max-width: 768px)`), áreas táctiles mínimas de 44px, barra flotante adaptativa con flex-wrap y scroll interno, botón de INICIAR/PAUSAR siempre visible en pantalla y reproducción forzada de video en directo (`playsinline`, `webkit-playsinline`, `video.play()`) para solucionar la cámara en iPhone 15.
+  2. **Persistencia de Guiones en Firestore**: Creación de `guardar_paquete_guion_firestore()` en [main.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/main.py). Tanto los guiones de Video Largo (10 min) como los Shorts (1 min) se guardan automáticamente en Firestore (`paquete_largo` y `paquete_short`) en cuanto Gemini los genera.
+  3. **Pestaña Dedicada de Historial (`📚 Historial de Guiones`)**: Añadida nueva pestaña principal en [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) para buscar, filtrar y consultar cualquier guion generado previamente en la base de datos sin gastar tokens adicionales de la API de Gemini.
+  4. **Prevención de Reseteos al Descargar**: Eliminación de la pérdida de guiones al hacer clic en los botones de descarga (`st.download_button`) mediante la recarga directa de los datos almacenados en Firestore.
+  5. **Línea Editorial Periodística y Posición Humanista (Sociedad 5.0)**: Actualización de prompts en `generar_guion_youtube_paquete()` y `generar_guion_short_paquete()` para forzar un enfoque periodístico riguroso ("ambas caras de la moneda": oportunidades vs. riesgos/desafíos éticos y laborales), la clasificación de madurez de la tecnología (producto comercial vs. estudio de laboratorio) y la afirmación explícita de la tesis del canal (*"Sensibilización sobre la transición del tecnocentrismo hacia el bienestar humano"*).
+
 ---
 
 ## Tareas Pendientes (Backlog)
@@ -46,4 +55,4 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
 - [x] **Paquete Metadatos YouTube (v2.0)**: Completado (Títulos A/B, Descripción SEO, Tags, Prompts IA 16:9).
 - [x] **Módulo de Shorts Diarios (v2.0)**: Completado (Guiones 60s, Prompts 9:16).
 - [x] **Despliegue Cloud (v2.0)**: Preparado para Streamlit Community Cloud.
-
+- [x] **Historial Persistente & Teleprompter Móvil (v2.1)**: Completado.
