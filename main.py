@@ -7,7 +7,7 @@ from firebase_admin import credentials, firestore
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
-from typing import List, Literal
+from typing import List, Literal, Any
 
 # Cargar variables de entorno desde api_keys.env
 env_path = os.path.join(os.path.dirname(__file__), "api_keys.env")
@@ -51,13 +51,13 @@ class AnalisisReporte(BaseModel):
 # =====================================================================
 # 2. Inicialización de Google Cloud Firestore
 # =====================================================================
-def inicializar_firebase() -> firestore.firestore.Client:
+def inicializar_firebase() -> Any:
     """
     Inicializa el SDK de Firebase Admin utilizando el archivo de credenciales,
     variables de entorno crudas (JSON string) o Streamlit Secrets para compatibilidad con la nube.
     
     Retorna:
-        firestore.firestore.Client: Cliente activo para interactuar con Firestore.
+        Any: Cliente activo para interactuar con Firestore.
     """
     cred = None
     
@@ -243,13 +243,13 @@ def analizar_reporte_con_gemini(texto_reporte: str) -> dict:
 # =====================================================================
 # 4. Guardar Análisis en Firestore
 # =====================================================================
-def guardar_en_firestore(db: firestore.firestore.Client, analisis: dict) -> str:
+def guardar_en_firestore(db: Any, analisis: dict) -> str:
     """
     Toma el JSON (diccionario) del análisis y lo almacena como un nuevo
     documento dentro de la colección 'analisis_sociedad' en Firestore.
     
     Argumentos:
-        db (firestore.firestore.Client): Cliente de Firestore.
+        db (Any): Cliente de Firestore.
         analisis (dict): Datos estructurados del análisis.
         
     Retorna:
@@ -273,13 +273,13 @@ def guardar_en_firestore(db: firestore.firestore.Client, analisis: dict) -> str:
         print(f"[ERROR] Error al escribir en la base de datos Firestore: {e}")
         raise
 
-def guardar_paquete_guion_firestore(db: firestore.firestore.Client, doc_id: str, campo: str, paquete_datos: dict) -> bool:
+def guardar_paquete_guion_firestore(db: Any, doc_id: str, campo: str, paquete_datos: dict) -> bool:
     """
     Actualiza un documento existente en Firestore agregando o modificando
     el paquete de guion (largo o short) en la colección 'analisis_sociedad'.
     
     Argumentos:
-        db (firestore.firestore.Client): Cliente de Firestore.
+        db (Any): Cliente de Firestore.
         doc_id (str): ID del documento a actualizar.
         campo (str): Nombre del campo ('paquete_largo' o 'paquete_short').
         paquete_datos (dict): Datos del paquete generado por Gemini.
