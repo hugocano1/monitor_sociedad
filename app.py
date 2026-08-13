@@ -701,6 +701,20 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             align-items: center; gap: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.5);
         }}
 
+        body.is-fullscreen {{
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 99999999 !important;
+            background: #09090b !important;
+        }}
+
+        body.is-fullscreen #controls-bar {{
+            bottom: 20px !important;
+        }}
+
         @keyframes pulse-dot {{ from {{ opacity: 0.3; transform: scale(0.8); }} to {{ opacity: 1; transform: scale(1.2); }} }}
         @keyframes pulse-rec {{ from {{ background: #dc2626; }} to {{ background: #7f1d1d; }} }}
         @keyframes zoom-pulse {{ 0% {{ transform: scale(0.6); opacity: 0.3; }} 50% {{ transform: scale(1.1); opacity: 1; }} 100% {{ transform: scale(1); opacity: 0.9; }} }}
@@ -720,8 +734,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
     <div id="overlay"></div>
     
     <div id="cam-status">
-        <span id="cam-status-msg">⚠️ Cámara o micrófono no activados</span>
-        <button onclick="initCamera()" style="background:white; color:#000; border:none; padding:4px 10px; border-radius:12px; cursor:pointer; font-weight:bold;">Activar Cámara</button>
+        <span id="cam-status-msg">⚠️ Tu navegador no admite cámara en esta ventana. Usa el Visor Integrado.</span>
     </div>
 
     <div id="rec-indicator">
@@ -1054,19 +1067,51 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             textNode.classList.toggle('mirrored');
         }});
 
+        // --- PANTALLA COMPLETA UNIVERSAL (INCLUIDO IPHONE Y MÓVILES) ---
         btnFS.addEventListener('click', () => {{
-            if (!document.fullscreenElement) {{
-                if (document.documentElement.requestFullscreen) {{
-                    document.documentElement.requestFullscreen();
-                }} else if (document.documentElement.webkitRequestFullscreen) {{
-                    document.documentElement.webkitRequestFullscreen();
+            const isFS = document.body.classList.toggle('is-fullscreen');
+
+            try {{
+                if (window.frameElement) {{
+                    if (isFS) {{
+                        window.frameElement.style.setProperty('position', 'fixed', 'important');
+                        window.frameElement.style.setProperty('top', '0', 'important');
+                        window.frameElement.style.setProperty('left', '0', 'important');
+                        window.frameElement.style.setProperty('width', '100vw', 'important');
+                        window.frameElement.style.setProperty('height', '100vh', 'important');
+                        window.frameElement.style.setProperty('z-index', '9999999', 'important');
+                        window.frameElement.style.setProperty('border', 'none', 'important');
+                    }} else {{
+                        window.frameElement.style.position = 'static';
+                        window.frameElement.style.width = '100%';
+                        window.frameElement.style.height = '680px';
+                        window.frameElement.style.zIndex = 'auto';
+                    }}
                 }}
+            }} catch(e) {{
+                console.log("Error al ajustar frameElement:", e);
+            }}
+
+            if (isFS) {{
+                btnFS.innerText = '⛶ Salir Pantalla Completa';
+                btnFS.style.background = '#dc2626';
+                try {{
+                    if (document.documentElement.requestFullscreen) {{
+                        document.documentElement.requestFullscreen().catch(e => {{}});
+                    }} else if (document.documentElement.webkitRequestFullscreen) {{
+                        document.documentElement.webkitRequestFullscreen().catch(e => {{}});
+                    }}
+                }} catch(e) {{}}
             }} else {{
-                if (document.exitFullscreen) {{
-                    document.exitFullscreen();
-                }} else if (document.webkitExitFullscreen) {{
-                    document.webkitExitFullscreen();
-                }}
+                btnFS.innerText = '⛶ Pantalla Completa';
+                btnFS.style.background = '';
+                try {{
+                    if (document.exitFullscreen) {{
+                        document.exitFullscreen().catch(e => {{}});
+                    }} else if (document.webkitExitFullscreen) {{
+                        document.webkitExitFullscreen().catch(e => {{}});
+                    }}
+                }} catch(e) {{}}
             }}
         }});
 
@@ -1097,10 +1142,10 @@ def render_teleprompter_button(narracion_limpia: str, titulo: str):
     
     # 1. Visor Integrado directo en la página (Recomendado para iPhone / Móviles ya que mantiene el origen HTTPS)
     st.markdown("#### 🎙️ Studio Teleprompter (Con Grabación de Video y Conteo 5s)")
-    st.info("💡 **Para iPhone / Chrome Móvil**: Presiona el botón **'⏱️ Conteo (5s) + Grabar y Mover'** o **'🔴 Grabar Video'** dentro del visor de abajo para conceder permisos y comenzar.")
+    st.info("💡 **Para iPhone / iOS Chrome**: Usa el visor de abajo y presiona **'⛶ Pantalla Completa'** para expandir la cámara a toda la pantalla de tu celular con 100% de funciones de grabación.")
     components.html(html_content, height=680)
     
-    # 2. Botón alternativo para abrir en ventana emergente (Ideal para monitores secundarios en PC)
+    # 2. Botón alternativo para abrir en ventana emergente (Ideal para monitores secundarios en PC y Android)
     component_code = f"""
     <div style="font-family: system-ui, -apple-system, sans-serif; margin: 10px 0;">
         <button id="open-prompter-btn" style="
@@ -1110,7 +1155,7 @@ def render_teleprompter_button(narracion_limpia: str, titulo: str):
             display: flex; align-items: center; justify-content: center; gap: 8px;
             transition: all 0.2s ease;
         ">
-            🖥️ Abrir en Ventana Independiente (Ideal para Monitores PC)
+            🖥️ Abrir en Ventana Emergente (Ideal para Monitores PC y Android)
         </button>
         <script>
             const b64Data = "{b64_html}";
