@@ -46,18 +46,18 @@ css_variables = f"""
 :root {{
     --bg: {"#09090b" if IS_DARK else "#f8fafc"};
     --bg-subtle: {"#0e0e12" if IS_DARK else "#f1f5f9"};
-    --card: {"rgba(18, 18, 24, 0.75)" if IS_DARK else "rgba(255, 255, 255, 0.9)"};
+    --card: {"rgba(18, 18, 24, 0.75)" if IS_DARK else "#ffffff"};
     --card-solid: {"#121218" if IS_DARK else "#ffffff"};
-    --card-hover: {"#171720" if IS_DARK else "#f8fafc"};
-    --border: {"rgba(255, 255, 255, 0.08)" if IS_DARK else "rgba(0, 0, 0, 0.08)"};
-    --border-strong: {"rgba(255, 255, 255, 0.16)" if IS_DARK else "rgba(0, 0, 0, 0.16)"};
-    --border-accent: {"rgba(37, 99, 235, 0.4)" if IS_DARK else "rgba(37, 99, 235, 0.3)"};
+    --card-hover: {"#171720" if IS_DARK else "#f1f5f9"};
+    --border: {"rgba(255, 255, 255, 0.08)" if IS_DARK else "#e2e8f0"};
+    --border-strong: {"rgba(255, 255, 255, 0.16)" if IS_DARK else "#cbd5e1"};
+    --border-accent: {"rgba(37, 99, 235, 0.4)" if IS_DARK else "rgba(37, 99, 235, 0.5)"};
     --text: {"#f8fafc" if IS_DARK else "#0f172a"};
-    --text-muted: {"#94a3b8" if IS_DARK else "#64748b"};
-    --text-dim: {"#64748b" if IS_DARK else "#94a3b8"};
+    --text-muted: {"#94a3b8" if IS_DARK else "#475569"};
+    --text-dim: {"#64748b" if IS_DARK else "#64748b"};
     --accent: #2563eb;
     --accent-glow: rgba(37, 99, 235, 0.35);
-    --shadow: {"0 12px 32px rgba(0, 0, 0, 0.5)" if IS_DARK else "0 10px 30px rgba(0, 0, 0, 0.05)"};
+    --shadow: {"0 12px 32px rgba(0, 0, 0, 0.5)" if IS_DARK else "0 4px 20px rgba(0, 0, 0, 0.06)"};
     --radius: 14px;
 }}
 
@@ -85,6 +85,28 @@ code, pre, .stCodeBlock, div[data-baseweb="input"] input, div[data-baseweb="text
     font-family: 'JetBrains Mono', monospace !important;
 }}
 
+/* Textos globales de Streamlit */
+label, .stMarkdown, .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown h5, .stMarkdown h6, div[data-testid="stMarkdownContainer"] p, div[data-testid="stWidgetLabel"] label, div[data-testid="stWidgetLabel"] p {{
+    color: var(--text) !important;
+}}
+
+div[data-testid="stRadioButton"] label {{
+    color: var(--text) !important;
+    font-weight: 600 !important;
+}}
+
+/* Insignia Live Engine */
+.live-badge {{
+    background: {"rgba(16, 185, 129, 0.16)" if IS_DARK else "rgba(16, 185, 129, 0.12)"};
+    color: {"#34d399" if IS_DARK else "#047857"};
+    border: 1px solid {"rgba(16, 185, 129, 0.3)" if IS_DARK else "rgba(16, 185, 129, 0.4)"};
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}}
+
 /* Contenedores de Tarjetas de Métricas KPI */
 .metric-card {{
     background: var(--card);
@@ -102,7 +124,7 @@ code, pre, .stCodeBlock, div[data-baseweb="input"] input, div[data-baseweb="text
 .metric-card:hover {{
     border-color: var(--border-accent);
     transform: translateY(-2px);
-    box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+    box-shadow: var(--shadow);
 }}
 .metric-card::before {{
     content: '';
@@ -125,6 +147,12 @@ code, pre, .stCodeBlock, div[data-baseweb="input"] input, div[data-baseweb="text
     color: var(--text);
     letter-spacing: -0.03em;
     margin-top: 0.3rem;
+}}
+.metric-value-accent {{
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin-top: 0.6rem;
+    color: {"#60a5fa" if IS_DARK else "#1d4ed8"};
 }}
 
 /* Tarjeta de Detalle del Reporte */
@@ -158,24 +186,25 @@ code, pre, .stCodeBlock, div[data-baseweb="input"] input, div[data-baseweb="text
     font-family: 'JetBrains Mono', monospace;
 }}
 .badge-narrative {{
-    background: rgba(37, 99, 235, 0.14);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.35);
+    background: {"rgba(37, 99, 235, 0.14)" if IS_DARK else "rgba(37, 99, 235, 0.1)"};
+    color: {"#60a5fa" if IS_DARK else "#1d4ed8"};
+    border: 1px solid {"rgba(59, 130, 246, 0.35)" if IS_DARK else "rgba(37, 99, 235, 0.35)"};
 }}
 .badge-impact {{
-    background: rgba(239, 68, 68, 0.14);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: {"rgba(239, 68, 68, 0.14)" if IS_DARK else "rgba(239, 68, 68, 0.1)"};
+    color: {"#f87171" if IS_DARK else "#b91c1c"};
+    border: 1px solid {"rgba(239, 68, 68, 0.35)" if IS_DARK else "rgba(239, 68, 68, 0.35)"};
 }}
 
 /* Formateo del guion de YouTube */
 .script-hook-card {{
     background: {"rgba(239, 68, 68, 0.08)" if IS_DARK else "rgba(239, 68, 68, 0.04)"};
-    border-left: 4px solid #ef4444;
+    border-left: 4px solid {"#ef4444" if IS_DARK else "#dc2626"};
     border-radius: 8px;
     padding: 1.4rem;
     margin-bottom: 1.5rem;
     box-shadow: 0 4px 20px rgba(239, 68, 68, 0.1);
+    color: var(--text);
 }}
 .script-section-header {{
     font-size: 1.25rem;
@@ -196,12 +225,12 @@ code, pre, .stCodeBlock, div[data-baseweb="input"] input, div[data-baseweb="text
     font-size: 0.98rem;
     line-height: 1.75;
     color: var(--text);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
 }}
 .script-vo-label {{
     font-family: 'JetBrains Mono', monospace;
     font-weight: 800;
-    color: #60a5fa;
+    color: {"#60a5fa" if IS_DARK else "#1d4ed8"};
     font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -214,7 +243,7 @@ code, pre, .stCodeBlock, div[data-baseweb="input"] input, div[data-baseweb="text
     font-size: 0.85rem;
     background: {"rgba(24, 24, 27, 0.9)" if IS_DARK else "#f1f5f9"};
     color: var(--text-muted);
-    border-left: 3px solid #64748b;
+    border-left: 3px solid {"#64748b" if IS_DARK else "#94a3b8"};
     padding: 0.6rem 1rem;
     margin-bottom: 0.9rem;
     border-radius: 0 8px 8px 0;
@@ -223,13 +252,13 @@ code, pre, .stCodeBlock, div[data-baseweb="input"] input, div[data-baseweb="text
     display: inline-block;
     font-size: 0.75rem;
     font-family: 'JetBrains Mono', monospace;
-    background: rgba(245, 158, 11, 0.16);
-    color: #fbbf24;
+    background: {"rgba(245, 158, 11, 0.16)" if IS_DARK else "rgba(245, 158, 11, 0.12)"};
+    color: {"#fbbf24" if IS_DARK else "#b45309"};
     padding: 3px 10px;
     border-radius: 6px;
     font-weight: 700;
     margin-bottom: 0.8rem;
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid {"rgba(245, 158, 11, 0.3)" if IS_DARK else "rgba(245, 158, 11, 0.4)"};
 }}
 
 /* Estilo para los botones principales y secundarios de Streamlit */
@@ -254,7 +283,7 @@ div.stButton > button[kind="primary"]:active {{
 }}
 
 div.stButton > button[kind="secondary"] {{
-    background: var(--card) !important;
+    background: var(--card-solid) !important;
     color: var(--text) !important;
     border: 1px solid var(--border-strong) !important;
     border-radius: 12px !important;
@@ -299,13 +328,13 @@ button[data-baseweb="tab"] {{
 }}
 button[data-baseweb="tab"]:hover {{
     color: var(--text) !important;
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: rgba(125, 125, 125, 0.08) !important;
 }}
 button[data-baseweb="tab"][aria-selected="true"] {{
-    color: #ffffff !important;
+    color: var(--text) !important;
     background: var(--card-solid) !important;
     border: 1px solid var(--border-strong) !important;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1) !important;
 }}
 [data-baseweb="tab-highlight"], [data-baseweb="tab-border"] {{
     display: none !important;
@@ -320,23 +349,56 @@ button[data-baseweb="tab"][aria-selected="true"] {{
 
 /* Inputs, Textareas y Selectboxes */
 div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] > div {{
-    background-color: var(--bg-subtle) !important;
-    border: 1px solid var(--border) !important;
+    background-color: var(--card-solid) !important;
+    border: 1px solid var(--border-strong) !important;
     border-radius: 12px !important;
     color: var(--text) !important;
     transition: border-color 0.2s ease !important;
+}}
+input, textarea, div[data-baseweb="select"] span, div[data-baseweb="select"] input {{
+    color: var(--text) !important;
 }}
 div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within {{
     border-color: var(--accent) !important;
     box-shadow: 0 0 0 3px var(--accent-glow) !important;
 }}
 
+/* Desplegables Selectbox Dropdown */
+ul[data-baseweb="menu"], div[data-baseweb="popover"] div {{
+    background-color: var(--card-solid) !important;
+    color: var(--text) !important;
+}}
+li[role="option"] {{
+    color: var(--text) !important;
+}}
+li[role="option"]:hover, li[aria-selected="true"] {{
+    background-color: var(--card-hover) !important;
+}}
+
 /* Expanders */
 .streamlit-expanderHeader {{
     background-color: var(--card) !important;
+    border: 1px solid var(--border) !important;
     border-radius: 12px !important;
     font-weight: 700 !important;
     color: var(--text) !important;
+}}
+.streamlit-expanderContent {{
+    background-color: var(--bg-subtle) !important;
+    border: 1px solid var(--border) !important;
+    border-top: none !important;
+    border-radius: 0 0 12px 12px !important;
+    color: var(--text) !important;
+}}
+
+blockquote {{
+    border-left: 3px solid var(--border-accent) !important;
+    padding: 0.6rem 1rem !important;
+    margin: 0.6rem 0 !important;
+    background: var(--bg-subtle) !important;
+    border-radius: 0 8px 8px 0 !important;
+    font-size: 0.9rem !important;
+    color: var(--text-muted) !important;
 }}
 </style>
 """
@@ -1204,7 +1266,7 @@ with head_left:
             <span style='color: white; font-weight: 800; font-size: 0.88rem; letter-spacing: 0.05em; font-family: "JetBrains Mono", monospace;'>SOCIEDAD 5.0</span>
         </div>
         <span style='font-size: 1.35rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text);'>INTELLIGENCE & MEDIA ENGINE</span>
-        <span style='background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; font-family: "JetBrains Mono", monospace;'>🟢 LIVE ENGINE v2.2</span>
+        <span class='live-badge'>🟢 LIVE ENGINE v2.3</span>
     </div>
     <div style='color: var(--text-muted); font-size: 0.88rem; margin-top: -0.1rem; font-weight: 500;'>
         Plataforma autónoma de inteligencia geopolítica, producción de guiones de 10 min, Shorts verticales y crawling multifuente.
@@ -1263,7 +1325,7 @@ with tab_explorar:
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-label">Narrativa Predominante</div>
-                <div class="metric-value" style="font-size: 1.35rem; font-weight: 800; margin-top: 0.6rem; color: #3b82f6;">{narrativa_dominante}</div>
+                <div class="metric-value-accent">{narrativa_dominante}</div>
             </div>
             """, unsafe_allow_html=True)
         
