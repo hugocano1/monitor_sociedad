@@ -862,6 +862,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             <input type="range" id="fontsize" min="18" max="60" value="30">
         </div>
 
+        <button id="btn-cam-toggle" class="btn btn-sec">📷 Activar Cámara</button>
         <button id="btn-mode" class="btn btn-sec">🖥️ 16:9 / 9:16</button>
         <button id="btn-mirror" class="btn btn-sec">🪞 Espejo</button>
         <button id="btn-reset" class="btn btn-sec">🔄 Inicio</button>
@@ -873,6 +874,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         const video = document.getElementById('webcam');
         const camStatus = document.getElementById('cam-status');
         const camStatusMsg = document.getElementById('cam-status-msg');
+        const btnCamToggle = document.getElementById('btn-cam-toggle');
         
         let mediaStream = null;
         let mediaRecorder = null;
@@ -883,10 +885,12 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         let lastRecordedBlob = null;
         let lastRecordedUrl = null;
 
-        async function initCamera() {{
+        async function startCamera() {{
+            if (mediaStream) return true; // Ya está encendida
+
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
                 camStatus.style.display = 'flex';
-                camStatusMsg.innerText = '⚠️ Tu navegador no admite cámara en esta ventana. Usa el Visor Integrado.';
+                camStatusMsg.innerText = '⚠️ Tu navegador no admite cámara en esta ventana.';
                 return false;
             }}
 
@@ -920,11 +924,43 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                 console.log("Error en video.play():", e);
             }}
             camStatus.style.display = 'none';
+            btnCamToggle.innerText = '🚫 Apagar Cámara';
+            btnCamToggle.style.background = '#dc2626';
             return true;
         }}
 
-        // Intentar inicializar cámara al cargar
-        initCamera();
+        function stopCamera() {{
+            if (mediaStream) {{
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }}
+            if (video.srcObject) {{
+                video.srcObject = null;
+            }}
+            camStatus.style.display = 'none';
+            btnCamToggle.innerText = '📷 Activar Cámara';
+            btnCamToggle.style.background = '';
+        }}
+
+        function toggleCamera() {{
+            if (mediaStream) {{
+                stopCamera();
+            }} else {{
+                startCamera();
+            }}
+        }}
+
+        btnCamToggle.addEventListener('click', toggleCamera);
+
+        // Limpiar cámara al cerrar la pestaña o cambiar de app
+        document.addEventListener('visibilitychange', () => {{
+            if (document.hidden && mediaStream && !isRecording) {{
+                stopCamera();
+            }}
+        }});
+        window.addEventListener('beforeunload', () => {{
+            stopCamera();
+        }});
 
         const box = document.getElementById('prompter-box');
         const textNode = document.getElementById('text-node');
@@ -1029,7 +1065,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         async function startRecording() {{
             if (isRecording) return;
             if (!mediaStream) {{
-                await initCamera();
+                await startCamera();
             }}
             if (!mediaStream) return;
 
@@ -1110,8 +1146,8 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         // --- CONTEO REGRESIVO DE 5 SEGUNDOS ---
 
         btnCountdownRec.addEventListener('click', async () => {{
-            // Intentar inicializar cámara por gesto de usuario en iOS
-            await initCamera();
+            // Intentar encender cámara por gesto de usuario en iOS
+            await startCamera();
 
             countdownOverlay.style.display = 'flex';
             let count = 5;
