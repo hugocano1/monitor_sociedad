@@ -35,26 +35,33 @@ def toggle_theme():
 IS_DARK = st.session_state.theme == "dark"
 
 # =====================================================================
-# 2. Inyección de Estilos CSS Personalizados (Diseño Zinc/Premium)
+# 2. Inyección de Estilos CSS Personalizados (Diseño Ultra-Premium / Command Center)
 # =====================================================================
 css_variables = f"""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
 <style>
 :root {{
-    --bg: {"#09090b" if IS_DARK else "#ffffff"};
-    --bg-subtle: {"#0c0c0f" if IS_DARK else "#f9fafb"};
-    --card: {"#0c0c0f" if IS_DARK else "#ffffff"};
-    --card-hover: {"#131316" if IS_DARK else "#f4f4f5"};
-    --border: {"#1e1e24" if IS_DARK else "#e4e4e7"};
-    --border-subtle: {"#16161a" if IS_DARK else "#f0f0f2"};
-    --text: {"#fafafa" if IS_DARK else "#09090b"};
-    --text-muted: #71717a;
-    --text-dim: {"#52525b" if IS_DARK else "#a1a1aa"};
+    --bg: {"#09090b" if IS_DARK else "#f8fafc"};
+    --bg-subtle: {"#0e0e12" if IS_DARK else "#f1f5f9"};
+    --card: {"rgba(18, 18, 24, 0.75)" if IS_DARK else "rgba(255, 255, 255, 0.9)"};
+    --card-solid: {"#121218" if IS_DARK else "#ffffff"};
+    --card-hover: {"#171720" if IS_DARK else "#f8fafc"};
+    --border: {"rgba(255, 255, 255, 0.08)" if IS_DARK else "rgba(0, 0, 0, 0.08)"};
+    --border-strong: {"rgba(255, 255, 255, 0.16)" if IS_DARK else "rgba(0, 0, 0, 0.16)"};
+    --border-accent: {"rgba(37, 99, 235, 0.4)" if IS_DARK else "rgba(37, 99, 235, 0.3)"};
+    --text: {"#f8fafc" if IS_DARK else "#0f172a"};
+    --text-muted: {"#94a3b8" if IS_DARK else "#64748b"};
+    --text-dim: {"#64748b" if IS_DARK else "#94a3b8"};
     --accent: #2563eb;
-    --shadow: {"none" if IS_DARK else "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)"};
-    --radius: 10px;
+    --accent-glow: rgba(37, 99, 235, 0.35);
+    --shadow: {"0 12px 32px rgba(0, 0, 0, 0.5)" if IS_DARK else "0 10px 30px rgba(0, 0, 0, 0.05)"};
+    --radius: 14px;
 }}
 
-/* Ocultar Streamlit Chrome */
+/* Ocultar elementos nativos innecesarios de Streamlit */
 header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"],
 [data-testid="stDecoration"], [data-testid="stStatusWidget"], .stDeployButton,
 div[data-testid="stSidebarCollapsedControl"] {{
@@ -65,149 +72,271 @@ div[data-testid="stSidebarCollapsedControl"] {{
 html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"], .main, .block-container, section[data-testid="stMain"] {{
     background-color: var(--bg) !important;
     color: var(--text) !important;
-    font-family: 'DM Sans', -apple-system, sans-serif !important;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
 }}
 
 .block-container {{
-    padding: 2rem 2.5rem 3rem !important;
-    max-width: 1360px !important;
+    padding: 2.2rem 2.8rem 4rem !important;
+    max-width: 1400px !important;
 }}
 
-/* Contenedores personalizados */
+/* Tipografía de código / mono */
+code, pre, .stCodeBlock, div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {{
+    font-family: 'JetBrains Mono', monospace !important;
+}}
+
+/* Contenedores de Tarjetas de Métricas KPI */
 .metric-card {{
     background: var(--card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 1.25rem 1.4rem;
+    padding: 1.4rem 1.6rem;
     box-shadow: var(--shadow);
     margin-bottom: 1rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}}
+.metric-card:hover {{
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+}}
+.metric-card::before {{
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: linear-gradient(180deg, #2563eb, #3b82f6);
+    border-radius: 4px 0 0 4px;
 }}
 .metric-label {{
-    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
     color: var(--text-muted);
-    font-weight: 500;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
 }}
 .metric-value {{
-    font-size: 1.75rem;
-    font-weight: 700;
+    font-size: 1.9rem;
+    font-weight: 800;
     color: var(--text);
     letter-spacing: -0.03em;
-    margin-top: 0.2rem;
+    margin-top: 0.3rem;
 }}
 
+/* Tarjeta de Detalle del Reporte */
 .report-detail-card {{
     background: var(--card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.8rem;
+    border-radius: 18px;
+    padding: 2.2rem;
     box-shadow: var(--shadow);
-    margin-top: 1rem;
+    margin-top: 1.2rem;
+    transition: border 0.3s ease;
+}}
+.report-detail-card:hover {{
+    border-color: var(--border-strong);
 }}
 
 .report-badge {{
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 700;
     margin-right: 0.5rem;
     margin-bottom: 0.5rem;
     text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-family: 'JetBrains Mono', monospace;
 }}
 .badge-narrative {{
-    background: rgba(37, 99, 235, 0.15);
-    color: #3b82f6;
-    border: 1px solid rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.14);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.35);
 }}
 .badge-impact {{
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.14);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
 }}
 
 /* Formateo del guion de YouTube */
 .script-hook-card {{
-    background: {"rgba(239, 68, 68, 0.08)" if IS_DARK else "rgba(239, 68, 68, 0.03)"};
-    border-left: 5px solid #ef4444;
-    border-radius: 4px 8px 8px 4px;
-    padding: 1.25rem;
+    background: {"rgba(239, 68, 68, 0.08)" if IS_DARK else "rgba(239, 68, 68, 0.04)"};
+    border-left: 4px solid #ef4444;
+    border-radius: 8px;
+    padding: 1.4rem;
     margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.1);
 }}
 .script-section-header {{
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.25rem;
+    font-weight: 800;
     color: var(--text);
     border-bottom: 2px solid var(--border);
-    padding-bottom: 0.3rem;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    margin-top: 2.2rem;
+    margin-bottom: 1.2rem;
+    letter-spacing: -0.02em;
 }}
 .script-vo {{
     background: var(--bg-subtle);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 0.8rem;
-    font-size: 0.95rem;
-    line-height: 1.6;
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 1rem;
+    font-size: 0.98rem;
+    line-height: 1.75;
     color: var(--text);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }}
 .script-vo-label {{
+    font-family: 'JetBrains Mono', monospace;
     font-weight: 800;
-    color: #3b82f6;
-    font-size: 0.8rem;
+    color: #60a5fa;
+    font-size: 0.82rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.3rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }}
 .script-production {{
-    font-size: 0.82rem;
-    background: {"#18181b" if IS_DARK else "#f4f4f5"};
+    font-size: 0.85rem;
+    background: {"rgba(24, 24, 27, 0.9)" if IS_DARK else "#f1f5f9"};
     color: var(--text-muted);
-    border-left: 3px solid var(--text-dim);
-    padding: 0.5rem 0.8rem;
-    margin-bottom: 0.8rem;
-    border-radius: 0 4px 4px 0;
+    border-left: 3px solid #64748b;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.9rem;
+    border-radius: 0 8px 8px 0;
 }}
 .script-sfx {{
     display: inline-block;
-    font-size: 0.72rem;
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
-    padding: 2px 7px;
-    border-radius: 4px;
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-weight: 700;
     margin-bottom: 0.8rem;
+    border: 1px solid rgba(245, 158, 11, 0.3);
 }}
 
-/* Estilo para los inputs de Streamlit */
-div[data-baseweb="select"] {{
-    background-color: var(--card) !important;
+/* Estilo para los botones principales y secundarios de Streamlit */
+div.stButton > button[kind="primary"] {{
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    padding: 0.75rem 1.4rem !important;
+    box-shadow: 0 4px 18px rgba(37, 99, 235, 0.4) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }}
+div.stButton > button[kind="primary"]:hover {{
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    box-shadow: 0 6px 24px rgba(37, 99, 235, 0.6) !important;
+    transform: translateY(-1px) !important;
+}}
+div.stButton > button[kind="primary"]:active {{
+    transform: scale(0.98) !important;
+}}
+
+div.stButton > button[kind="secondary"] {{
+    background: var(--card) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    padding: 0.7rem 1.2rem !important;
+    transition: all 0.2s ease !important;
+}}
+div.stButton > button[kind="secondary"]:hover {{
+    background: var(--card-hover) !important;
+    border-color: var(--border-accent) !important;
+    color: var(--text) !important;
+}}
+
+/* Botones de Descarga de Streamlit */
+div.stDownloadButton > button {{
+    background: linear-gradient(135deg, #059669, #047857) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 0.92rem !important;
+    padding: 0.7rem 1.4rem !important;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35) !important;
+    transition: all 0.2s ease !important;
+}}
+div.stDownloadButton > button:hover {{
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5) !important;
+    transform: translateY(-1px) !important;
+}}
+
+/* Estilo para los Pestañas (Tabs) de Streamlit */
 button[data-baseweb="tab"] {{
     background: transparent !important;
     color: var(--text-muted) !important;
-    font-size: 0.85rem !important;
-    font-weight: 600 !important;
-    padding: 0.6rem 1.2rem !important;
-    border-radius: 7px !important;
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    padding: 0.75rem 1.4rem !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+}}
+button[data-baseweb="tab"]:hover {{
+    color: var(--text) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
 }}
 button[data-baseweb="tab"][aria-selected="true"] {{
-    color: var(--text) !important;
-    background: var(--card) !important;
-    border: 1px solid var(--border) !important;
+    color: #ffffff !important;
+    background: var(--card-solid) !important;
+    border: 1px solid var(--border-strong) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3) !important;
 }}
 [data-baseweb="tab-highlight"], [data-baseweb="tab-border"] {{
     display: none !important;
 }}
 [data-baseweb="tab-list"] {{
-    gap: 4px !important;
+    gap: 6px !important;
     background: var(--bg-subtle) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-    padding: 3px;
+    border-radius: 14px !important;
+    padding: 4px;
+}}
+
+/* Inputs, Textareas y Selectboxes */
+div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] > div {{
+    background-color: var(--bg-subtle) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    color: var(--text) !important;
+    transition: border-color 0.2s ease !important;
+}}
+div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within {{
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}}
+
+/* Expanders */
+.streamlit-expanderHeader {{
+    background-color: var(--card) !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    color: var(--text) !important;
 }}
 </style>
 """
@@ -1013,19 +1142,23 @@ def generar_guion_youtube(analisis: dict) -> str:
 head_left, head_right = st.columns([10, 2])
 with head_left:
     st.markdown("""
-    <div style='display: flex; align-items: center; gap: 12px; margin-bottom: 0.5rem;'>
-        <div style='background: #2563eb; width: 14px; height: 14px; border-radius: 3px;'></div>
-        <span style='font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em;'>SOCIEDAD 5.0 — INTEL & MEDIA ENGINE</span>
+    <div style='display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 0.6rem;'>
+        <div style='background: linear-gradient(135deg, #2563eb, #3b82f6); padding: 6px 14px; border-radius: 10px; box-shadow: 0 4px 14px rgba(37,99,235,0.4); display: flex; align-items: center; gap: 8px;'>
+            <span style='color: white; font-weight: 900; font-size: 1.1rem;'>◆</span>
+            <span style='color: white; font-weight: 800; font-size: 0.88rem; letter-spacing: 0.05em; font-family: "JetBrains Mono", monospace;'>SOCIEDAD 5.0</span>
+        </div>
+        <span style='font-size: 1.35rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text);'>INTELLIGENCE & MEDIA ENGINE</span>
+        <span style='background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; font-family: "JetBrains Mono", monospace;'>🟢 LIVE ENGINE v2.2</span>
     </div>
-    <div style='color: #71717a; font-size: 0.85rem; margin-top: -0.2rem;'>
-        Plataforma de inteligencia geopolítica, producción de guiones de 10 min, Shorts diarios y crawling global.
+    <div style='color: var(--text-muted); font-size: 0.88rem; margin-top: -0.1rem; font-weight: 500;'>
+        Plataforma autónoma de inteligencia geopolítica, producción de guiones de 10 min, Shorts verticales y crawling multifuente.
     </div>
     """, unsafe_allow_html=True)
 with head_right:
     theme_label = "☀️ Modo Claro" if IS_DARK else "🌙 Modo Oscuro"
     st.button(theme_label, on_click=toggle_theme, use_container_width=True)
 
-st.markdown("<hr style='margin: 1.2rem 0; border-color: var(--border);'>", unsafe_allow_html=True)
+st.markdown("<hr style='margin: 1.4rem 0 1.8rem; border-color: var(--border);'>", unsafe_allow_html=True)
 
 # Cargar reportes al iniciar
 lista_reportes = obtener_todos_reportes(db)
