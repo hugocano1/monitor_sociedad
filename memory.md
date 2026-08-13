@@ -45,13 +45,12 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   5. **Línea Editorial Periodística y Posición Humanista (Sociedad 5.0)**: Actualización de prompts en `generar_guion_youtube_paquete()` y `generar_guion_short_paquete()` para forzar un enfoque periodístico riguroso ("ambas caras de la moneda": oportunidades vs. riesgos/desafíos éticos y laborales), la clasificación de madurez de la tecnología (producto comercial vs. estudio de laboratorio) y la afirmación explícita de la tesis del canal (*"Sensibilización sobre la transición del tecnocentrismo hacia el bienestar humano"*).
   6. **Resolución de ImportError en Streamlit Cloud**: Reemplazo de las anotaciones de tipo `firestore.firestore.Client` por `typing.Any` en [main.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/main.py) para evitar errores de evaluación de atributos de módulo en el runtime de Streamlit Cloud.
 
-### Sesión: 13 de Agosto de 2026 (v2.2)
-* **Objetivo**: Integración de grabación de video en el Teleprompter (PC y Móviles), conteo regresivo de 5 segundos automatizado con inicio de desplazamiento y solución de permisos de cámara en pestañas emergentes en celulares.
+### Sesión: 13 de Agosto de 2026 (v2.3)
+* **Objetivo**: Implementación de expansión universal a Pantalla Completa para iPhone / iOS WebKit en el Visor Integrado del Teleprompter y aclaración del comportamiento de pestañas emergentes en iOS.
 * **Logros**:
-  1. **Motor de Grabación Integrado (`MediaRecorder API`)**: Implementación de captura de video y voz/micrófono directo en `generar_html_teleprompter_standalone()` en [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) con soporte multiplataforma (formato `.mp4` para iOS Safari / macOS y `.webm` para Chrome / Android / PC).
-  2. **Modo Conteo Regresivo de 5 Segundos**: Botón destacado `⏱️ Conteo (5s) + Grabar y Mover` que despliega un visor a pantalla completa con conteo regresivo (5... 4... 3... 2... 1... ¡GRABANDO!), iniciando automáticamente la grabación y el avance gradual del guion sin intervención manual.
-  3. **Descarga y Guardado en Galería / Disco**: Botón `💾 Descargar Video Grabado` compatible con la `Web Share API` en dispositivos móviles (permite guardar la grabación directamente en la galería de fotos de iPhone/Android) y descarga directa en el explorador de archivos en PC.
-  4. **Solución de Cámara en Pestañas Emergentes Móviles**: Reemplazo del formato `blob:` URL en `render_teleprompter_button()` por la apertura de ventana en mismo origen mediante `window.open('', '_blank')` y `win.document.write()`, eliminando las restricciones de privacidad de iOS Safari que bloqueaban el acceso a `getUserMedia()` en ventanas emergentes.
+  1. **Expansión Universal a Pantalla Completa (`window.frameElement` CSS Overlay)**: Solución técnica para iPhone (donde la API estándar `requestFullscreen()` de HTML5 no es soportada en elementos dentro de `<iframe>`). Al tocar `⛶ Pantalla Completa`, el contenedor `iframe` rompe los límites del componente y pasa automáticamente a `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999999`, cubriendo el 100% de la pantalla del iPhone en vivo sin perder la cámara o grabación.
+  2. **Botonera Dinámica `⛶ Salir Pantalla Completa`**: Cambia a color rojo y permite retornar al tamaño normal en cualquier momento.
+  3. **Aclaraciones de Plataforma**: Confirmación de funcionamiento perfecto en Android Chrome y PC (tanto en visor integrado como en ventana emergente). En iPhone, el Visor Integrado con la nueva Pantalla Completa se convierte en el método recomendado.
 
 ---
 
@@ -66,3 +65,4 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
 - [x] **Despliegue Cloud (v2.0)**: Preparado para Streamlit Community Cloud.
 - [x] **Historial Persistente & Teleprompter Móvil (v2.1)**: Completado.
 - [x] **Grabación de Video con Cámara/Mic, Conteo 5s & Fix Móvil (v2.2)**: Completado.
+- [x] **Pantalla Completa Universal iPhone via frameElement (v2.3)**: Completado.
