@@ -45,12 +45,12 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   5. **Línea Editorial Periodística y Posición Humanista (Sociedad 5.0)**: Actualización de prompts en `generar_guion_youtube_paquete()` y `generar_guion_short_paquete()` para forzar un enfoque periodístico riguroso ("ambas caras de la moneda": oportunidades vs. riesgos/desafíos éticos y laborales), la clasificación de madurez de la tecnología (producto comercial vs. estudio de laboratorio) y la afirmación explícita de la tesis del canal (*"Sensibilización sobre la transición del tecnocentrismo hacia el bienestar humano"*).
   6. **Resolución de ImportError en Streamlit Cloud**: Reemplazo de las anotaciones de tipo `firestore.firestore.Client` por `typing.Any` en [main.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/main.py) para evitar errores de evaluación de atributos de módulo en el runtime de Streamlit Cloud.
 
-### Sesión: 13 de Agosto de 2026 (v2.4)
-* **Objetivo**: Integración de búsqueda en tiempo real de noticias recientes (Google News Realtime) para términos como 'Gemini 3.7' y edición viva de guiones tanto en el panel de control como directamente en el Teleprompter.
+### Sesión: 13 de Agosto de 2026 (v2.5)
+* **Objetivo**: Implementar encendido de cámara a demanda (On-Demand) y liberación automática de hardware para garantizar 100% privacidad y evitar consumo continuo de batería.
 * **Logros**:
-  1. **Motor de Búsqueda Dinámico en Tiempo Real (Google News Realtime Integration)**: Actualización de [ingest.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/ingest.py) con `consultar_google_news()`. Cuando las fuentes RSS estáticas no contienen artículos para un término reciente (ej: `Gemini 3.7`), la ingesta recurre automáticamente a la API XML de Google News en tiempo real, recuperando al instante las últimas noticias globales. Se añadió la opción explícita `🌐 Búsqueda en Tiempo Real (Google News Global)` en el panel.
-  2. **Edición Interactiva de Guiones en la Interfaz (Streamlit UI)**: Reemplazo de bloques estáticos por cajas de texto editable (`st.text_area`) en las pestañas de **Guion YouTube (Largo)** y **Shorts de IA**, acompañadas del botón `💾 Guardar Guion Editado en Firestore` para actualizar la base de datos persistente.
-  3. **Edición Directa dentro del Teleprompter (`contenteditable`)**: Adición del botón `✏️ Editar Texto` en la barra de controles del Teleprompter. Al tocarlo, activa el modo `contenteditable="true"` directamente en la pantalla del celular o PC, permitiendo corregir o añadir anotaciones en directo antes o durante la grabación.
+  1. **Cámara Apagada por Defecto al Cargar**: Eliminación del encendido automático (`initCamera()`) al abrir el visor. El sensor de la cámara permanece 100% apagado (luz verde/indicador apagado) mientras el usuario solo lee o edita.
+  2. **Encendido A Demanda**: La cámara se enciende únicamente al tocar **`📷 Activar Cámara`**, **`⏱️ Conteo (5s) + Grabar y Mover`** o **`🔴 Grabar Video`**.
+  3. **Botón `🚫 Apagar Cámara` & Limpieza Automática al Salir**: El usuario puede apagar manualmente la cámara en cualquier instante. Además, eventos de ciclo de vida (`visibilitychange` / `beforeunload`) liberan los *tracks* del `MediaStream` al cambiar de pestaña o salir del sitio web.
 
 ---
 
@@ -67,3 +67,4 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
 - [x] **Grabación de Video con Cámara/Mic, Conteo 5s & Fix Móvil (v2.2)**: Completado.
 - [x] **Pantalla Completa Universal iPhone via frameElement (v2.3)**: Completado.
 - [x] **Google News Realtime & Guiones Editables en UI/Prompter (v2.4)**: Completado.
+- [x] **Cámara A Demanda & Ahorro de Batería / Privacidad (v2.5)**: Completado.
