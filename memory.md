@@ -45,12 +45,12 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   5. **Línea Editorial Periodística y Posición Humanista (Sociedad 5.0)**: Actualización de prompts en `generar_guion_youtube_paquete()` y `generar_guion_short_paquete()` para forzar un enfoque periodístico riguroso ("ambas caras de la moneda": oportunidades vs. riesgos/desafíos éticos y laborales), la clasificación de madurez de la tecnología (producto comercial vs. estudio de laboratorio) y la afirmación explícita de la tesis del canal (*"Sensibilización sobre la transición del tecnocentrismo hacia el bienestar humano"*).
   6. **Resolución de ImportError en Streamlit Cloud**: Reemplazo de las anotaciones de tipo `firestore.firestore.Client` por `typing.Any` en [main.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/main.py) para evitar errores de evaluación de atributos de módulo en el runtime de Streamlit Cloud.
 
-### Sesión: 13 de Agosto de 2026 (v2.3)
-* **Objetivo**: Implementación de expansión universal a Pantalla Completa para iPhone / iOS WebKit en el Visor Integrado del Teleprompter y aclaración del comportamiento de pestañas emergentes en iOS.
+### Sesión: 13 de Agosto de 2026 (v2.4)
+* **Objetivo**: Integración de búsqueda en tiempo real de noticias recientes (Google News Realtime) para términos como 'Gemini 3.7' y edición viva de guiones tanto en el panel de control como directamente en el Teleprompter.
 * **Logros**:
-  1. **Expansión Universal a Pantalla Completa (`window.frameElement` CSS Overlay)**: Solución técnica para iPhone (donde la API estándar `requestFullscreen()` de HTML5 no es soportada en elementos dentro de `<iframe>`). Al tocar `⛶ Pantalla Completa`, el contenedor `iframe` rompe los límites del componente y pasa automáticamente a `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999999`, cubriendo el 100% de la pantalla del iPhone en vivo sin perder la cámara o grabación.
-  2. **Botonera Dinámica `⛶ Salir Pantalla Completa`**: Cambia a color rojo y permite retornar al tamaño normal en cualquier momento.
-  3. **Aclaraciones de Plataforma**: Confirmación de funcionamiento perfecto en Android Chrome y PC (tanto en visor integrado como en ventana emergente). En iPhone, el Visor Integrado con la nueva Pantalla Completa se convierte en el método recomendado.
+  1. **Motor de Búsqueda Dinámico en Tiempo Real (Google News Realtime Integration)**: Actualización de [ingest.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/ingest.py) con `consultar_google_news()`. Cuando las fuentes RSS estáticas no contienen artículos para un término reciente (ej: `Gemini 3.7`), la ingesta recurre automáticamente a la API XML de Google News en tiempo real, recuperando al instante las últimas noticias globales. Se añadió la opción explícita `🌐 Búsqueda en Tiempo Real (Google News Global)` en el panel.
+  2. **Edición Interactiva de Guiones en la Interfaz (Streamlit UI)**: Reemplazo de bloques estáticos por cajas de texto editable (`st.text_area`) en las pestañas de **Guion YouTube (Largo)** y **Shorts de IA**, acompañadas del botón `💾 Guardar Guion Editado en Firestore` para actualizar la base de datos persistente.
+  3. **Edición Directa dentro del Teleprompter (`contenteditable`)**: Adición del botón `✏️ Editar Texto` en la barra de controles del Teleprompter. Al tocarlo, activa el modo `contenteditable="true"` directamente en la pantalla del celular o PC, permitiendo corregir o añadir anotaciones en directo antes o durante la grabación.
 
 ---
 
@@ -66,3 +66,4 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
 - [x] **Historial Persistente & Teleprompter Móvil (v2.1)**: Completado.
 - [x] **Grabación de Video con Cámara/Mic, Conteo 5s & Fix Móvil (v2.2)**: Completado.
 - [x] **Pantalla Completa Universal iPhone via frameElement (v2.3)**: Completado.
+- [x] **Google News Realtime & Guiones Editables en UI/Prompter (v2.4)**: Completado.
