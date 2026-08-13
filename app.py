@@ -348,31 +348,64 @@ button[data-baseweb="tab"][aria-selected="true"] {{
 }}
 
 /* Inputs, Textareas y Selectboxes */
-div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] > div {{
-    background-color: var(--card-solid) !important;
-    border: 1px solid var(--border-strong) !important;
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"] > div,
+div[data-baseweb="textarea"] > div {{
+    background-color: {"#121218" if IS_DARK else "#ffffff"} !important;
+    border: 1px solid {"rgba(255, 255, 255, 0.16)" if IS_DARK else "#cbd5e1"} !important;
     border-radius: 12px !important;
-    color: var(--text) !important;
     transition: border-color 0.2s ease !important;
 }}
-input, textarea, div[data-baseweb="select"] span, div[data-baseweb="select"] input {{
-    color: var(--text) !important;
+
+div[data-baseweb="select"] *,
+div[data-baseweb="input"] *,
+div[data-baseweb="textarea"] *,
+.stSelectbox *,
+.stTextInput input,
+.stTextArea textarea {{
+    color: {"#f8fafc" if IS_DARK else "#0f172a"} !important;
+    -webkit-text-fill-color: {"#f8fafc" if IS_DARK else "#0f172a"} !important;
+    fill: {"#f8fafc" if IS_DARK else "#0f172a"} !important;
 }}
+
+input::placeholder, textarea::placeholder {{
+    color: {"#94a3b8" if IS_DARK else "#64748b"} !important;
+    -webkit-text-fill-color: {"#94a3b8" if IS_DARK else "#64748b"} !important;
+}}
+
 div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within {{
     border-color: var(--accent) !important;
     box-shadow: 0 0 0 3px var(--accent-glow) !important;
 }}
 
-/* Desplegables Selectbox Dropdown */
-ul[data-baseweb="menu"], div[data-baseweb="popover"] div {{
-    background-color: var(--card-solid) !important;
-    color: var(--text) !important;
+/* Desplegables Selectbox Dropdown (Menu Flotante Popover) */
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] *,
+div[data-baseweb="menu"],
+div[data-baseweb="menu"] *,
+ul[data-baseweb="menu"],
+ul[data-baseweb="menu"] *,
+ul[role="listbox"],
+ul[role="listbox"] * {{
+    background-color: {"#121218" if IS_DARK else "#ffffff"} !important;
+    color: {"#f8fafc" if IS_DARK else "#0f172a"} !important;
+    -webkit-text-fill-color: {"#f8fafc" if IS_DARK else "#0f172a"} !important;
 }}
-li[role="option"] {{
-    color: var(--text) !important;
+
+li[role="option"],
+div[role="option"] {{
+    background-color: {"#121218" if IS_DARK else "#ffffff"} !important;
+    color: {"#f8fafc" if IS_DARK else "#0f172a"} !important;
+    -webkit-text-fill-color: {"#f8fafc" if IS_DARK else "#0f172a"} !important;
 }}
-li[role="option"]:hover, li[aria-selected="true"] {{
-    background-color: var(--card-hover) !important;
+
+li[role="option"]:hover,
+li[role="option"][aria-selected="true"],
+div[role="option"]:hover,
+div[role="option"][aria-selected="true"] {{
+    background-color: {"#222230" if IS_DARK else "#e2e8f0"} !important;
+    color: {"#60a5fa" if IS_DARK else "#1d4ed8"} !important;
+    -webkit-text-fill-color: {"#60a5fa" if IS_DARK else "#1d4ed8"} !important;
 }}
 
 /* Expanders */
