@@ -865,6 +865,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         <button id="btn-mode" class="btn btn-sec">🖥️ 16:9 / 9:16</button>
         <button id="btn-mirror" class="btn btn-sec">🪞 Espejo</button>
         <button id="btn-reset" class="btn btn-sec">🔄 Inicio</button>
+        <button id="btn-edit" class="btn btn-sec">✏️ Editar Texto</button>
         <button id="btn-fullscreen" class="btn btn-sec">⛶ Pantalla Completa</button>
     </div>
 
@@ -941,10 +942,34 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         const btnMode = document.getElementById('btn-mode');
         const btnMirror = document.getElementById('btn-mirror');
         const btnReset = document.getElementById('btn-reset');
+        const btnEdit = document.getElementById('btn-edit');
         const btnFS = document.getElementById('btn-fullscreen');
 
         let isPlaying = false;
         let animId = null;
+        let isEditingText = false;
+
+        btnEdit.addEventListener('click', () => {{
+            isEditingText = !isEditingText;
+            if (isEditingText) {{
+                pauseScroll();
+                textNode.setAttribute('contenteditable', 'true');
+                textNode.style.outline = '2px dashed #2563eb';
+                textNode.style.padding = '12px';
+                textNode.style.borderRadius = '12px';
+                textNode.style.background = 'rgba(15, 23, 42, 0.75)';
+                textNode.focus();
+                btnEdit.innerText = '💾 Guardar Edición';
+                btnEdit.style.background = '#059669';
+            }} else {{
+                textNode.setAttribute('contenteditable', 'false');
+                textNode.style.outline = 'none';
+                textNode.style.padding = '';
+                textNode.style.background = '';
+                btnEdit.innerText = '✏️ Editar Texto';
+                btnEdit.style.background = '';
+            }}
+        }});
 
         function scrollStep() {{
             if (!isPlaying) return;
@@ -1468,10 +1493,25 @@ with tab_explorar:
                         
                 with subtab_guion:
                     st.markdown("### 📜 Guion Literario Completo (10 Min):")
-                    guion_txt = pkg.get("guion_completo", "")
-                    st.markdown(guion_txt)
+                    st.info("💡 **Puedes editar el guion directamente aquí abajo. Al guardar los cambios, el Teleprompter se actualizará automáticamente.**")
                     
-                    data_md = f"# PAQUETE YOUTUBE LARGO (SOCIEDAD 5.0)\n\n## TÍTULOS\n" + "\n".join(pkg.get("titulos", [])) + f"\n\n## DESCRIPCIÓN SEO\n{pkg.get('descripcion_seo')}\n\n## ETIQUETAS\n{pkg.get('etiquetas')}\n\n## GUION COMPLETO\n{guion_txt}"
+                    guion_largo_actual = pkg.get("guion_completo", "")
+                    guion_largo_editado = st.text_area(
+                        "✏️ Editar Guion de Locución:",
+                        value=guion_largo_actual,
+                        height=360,
+                        key=f"edit_guion_largo_{reporte_selec['id'][:6]}"
+                    )
+                    
+                    if guion_largo_editado != guion_largo_actual:
+                        if st.button("💾 Guardar Guion Editado en Firestore", type="primary", key=f"btn_save_largo_{reporte_selec['id'][:6]}"):
+                            pkg["guion_completo"] = guion_largo_editado
+                            reporte_selec["paquete_largo"] = pkg
+                            guardar_paquete_guion_firestore(db, reporte_selec["id"], "paquete_largo", pkg)
+                            st.success("¡Guion editado y guardado en Firestore exitosamente!")
+                            st.rerun()
+                    
+                    data_md = f"# PAQUETE YOUTUBE LARGO (SOCIEDAD 5.0)\n\n## TÍTULOS\n" + "\n".join(pkg.get("titulos", [])) + f"\n\n## DESCRIPCIÓN SEO\n{pkg.get('descripcion_seo')}\n\n## ETIQUETAS\n{pkg.get('etiquetas')}\n\n## GUION COMPLETO\n{guion_largo_editado}"
                     st.download_button(
                         label="📥 Descargar Paquete Completo (.md)",
                         data=data_md,
@@ -1547,8 +1587,21 @@ with tab_shorts:
                 
                 s_col1, s_col2 = st.columns([7, 5])
                 with s_col1:
-                    st.markdown("#### 📜 Guion Literario de 60 Segundos:")
-                    st.markdown(pkg_short.get("guion_short", ""))
+                    st.markdown("#### 📜 Guion Literario de 60 Segundos (Editable):")
+                    guion_short_actual = pkg_short.get("guion_short", "")
+                    guion_short_editado = st.text_area(
+                        "✏️ Editar Texto del Short:",
+                        value=guion_short_actual,
+                        height=280,
+                        key=f"edit_guion_short_{reporte_short['id'][:6]}"
+                    )
+                    if guion_short_editado != guion_short_actual:
+                        if st.button("💾 Guardar Short Editado en Firestore", type="primary", key=f"btn_save_short_{reporte_short['id'][:6]}"):
+                            pkg_short["guion_short"] = guion_short_editado
+                            reporte_short["paquete_short"] = pkg_short
+                            guardar_paquete_guion_firestore(db, reporte_short["id"], "paquete_short", pkg_short)
+                            st.success("¡Guion del Short actualizado y guardado en Firestore!")
+                            st.rerun()
                     
                 with s_col2:
                     st.markdown("#### 📱 Prompts Visuales Verticals (9:16):")
@@ -1557,7 +1610,7 @@ with tab_shorts:
                         
                 st.markdown("---")
                 st.markdown("### 🎙️ Teleprompter Studio para Short (9:16)")
-                narracion_short_limpia = extraer_narracion_limpia(pkg_short.get("guion_short", ""))
+                narracion_short_limpia = extraer_narracion_limpia(guion_short_editado)
                 render_teleprompter_button(narracion_short_limpia, pkg_short.get("titulo_short", "Short IA"))
                 
                 st.text_area("Copiar locución del Short a Google Docs / Drive:", value=narracion_short_limpia, height=140, key=f"txt_prompter_short_{reporte_short['id'][:6]}")
@@ -1733,8 +1786,9 @@ with tab_ingesta_automatica:
             "Selecciona la fuente o categoría de búsqueda:",
             [
                 "Todas las fuentes (Consolidado Global)",
-                "Universidades & Ciencia (arXiv, IEEE Spectrum, Nature, MIT)",
+                "🌐 Búsqueda en Tiempo Real (Google News Global)",
                 "Prensa Tech Global (TechCrunch, Wired, VentureBeat)",
+                "Universidades & Ciencia (arXiv, IEEE Spectrum, Nature, MIT)",
                 "Organismos & Coyuntura Global (BBC Tech, WEF)"
             ]
         )
