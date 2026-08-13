@@ -775,36 +775,46 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         let lastRecordedUrl = null;
 
         async function initCamera() {{
-            try {{
-                mediaStream = await navigator.mediaDevices.getUserMedia({{
-                    video: {{ facingMode: 'user', width: {{ ideal: 1280 }}, height: {{ ideal: 720 }} }},
-                    audio: true
-                }});
-                camStatus.style.display = 'none';
-            }} catch(errAudio) {{
-                console.warn("Audio denegado o no disponible, probando solo video:", errAudio);
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
+                camStatus.style.display = 'flex';
+                camStatusMsg.innerText = '⚠️ Tu navegador no admite cámara en esta ventana. Usa el Visor Integrado.';
+                return false;
+            }}
+
+            const tryConstraints = [
+                {{ video: {{ facingMode: 'user' }}, audio: true }},
+                {{ video: true, audio: true }},
+                {{ video: {{ facingMode: 'user' }} }},
+                {{ video: true }}
+            ];
+
+            mediaStream = null;
+            for (const c of tryConstraints) {{
                 try {{
-                    mediaStream = await navigator.mediaDevices.getUserMedia({{
-                        video: {{ facingMode: 'user', width: {{ ideal: 1280 }}, height: {{ ideal: 720 }} }}
-                    }});
-                    camStatus.style.display = 'none';
-                }} catch(errVideo) {{
-                    console.error("Error al acceder a la cámara:", errVideo);
-                    camStatus.style.display = 'flex';
-                    camStatusMsg.innerText = '⚠️ Haz clic aquí para dar permiso a la cámara.';
-                    return false;
+                    mediaStream = await navigator.mediaDevices.getUserMedia(c);
+                    if (mediaStream) break;
+                }} catch(e) {{
+                    console.warn("Constraint no soportado:", c, e);
                 }}
             }}
+
+            if (!mediaStream) {{
+                camStatus.style.display = 'flex';
+                camStatusMsg.innerText = '⚠️ Toca aquí para dar permiso a la cámara.';
+                return false;
+            }}
+
             video.srcObject = mediaStream;
             try {{
                 await video.play();
             }} catch(e) {{
-                console.log("video play error:", e);
+                console.log("Error en video.play():", e);
             }}
+            camStatus.style.display = 'none';
             return true;
         }}
 
-        // Inicializar cámara al cargar
+        // Intentar inicializar cámara al cargar
         initCamera();
 
         const box = document.getElementById('prompter-box');
@@ -886,9 +896,9 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         async function startRecording() {{
             if (isRecording) return;
             if (!mediaStream) {{
-                const ok = await initCamera();
-                if (!ok) return alert('No se pudo acceder a la cámara para grabar.');
+                await initCamera();
             }}
+            if (!mediaStream) return;
 
             recordedChunks = [];
             const mimeType = getSupportedMimeType();
@@ -901,7 +911,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                 try {{
                     mediaRecorder = new MediaRecorder(mediaStream);
                 }} catch(e2) {{
-                    return alert("Tu navegador no soporta la grabación de pantalla/cámara.");
+                    return console.warn("Grabación no soportada en este entorno.");
                 }}
             }}
 
@@ -956,21 +966,19 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             recTimerText.innerText = `🔴 REC ${{mins}}:${{secs}}`;
         }}
 
-        btnRecManual.addEventListener('click', () => {{
+        btnRecManual.addEventListener('click', async () => {{
             if (isRecording) {{
                 stopRecording();
             }} else {{
-                startRecording();
+                await startRecording();
             }}
         }});
 
         // --- CONTEO REGRESIVO DE 5 SEGUNDOS ---
 
         btnCountdownRec.addEventListener('click', async () => {{
-            if (!mediaStream) {{
-                const ok = await initCamera();
-                if (!ok) return;
-            }}
+            // Intentar inicializar cámara por gesto de usuario en iOS
+            await initCamera();
 
             countdownOverlay.style.display = 'flex';
             let count = 5;
@@ -986,7 +994,9 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                     clearInterval(timer);
                     countdownOverlay.style.display = 'none';
                     box.scrollTop = 0;
-                    await startRecording();
+                    if (mediaStream) {{
+                        await startRecording();
+                    }}
                     startScroll();
                 }}
             }}, 1000);
@@ -1081,20 +1091,26 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 </html>"""
 
 def render_teleprompter_button(narracion_limpia: str, titulo: str):
-    """Renderiza la experiencia de Teleprompter con apertura robusta en ventanas secundarias y móviles."""
+    """Renderiza la experiencia de Teleprompter con soporte garantizado en móviles y PC."""
     html_content = generar_html_teleprompter_standalone(narracion_limpia, titulo)
     b64_html = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
     
+    # 1. Visor Integrado directo en la página (Recomendado para iPhone / Móviles ya que mantiene el origen HTTPS)
+    st.markdown("#### 🎙️ Studio Teleprompter (Con Grabación de Video y Conteo 5s)")
+    st.info("💡 **Para iPhone / Chrome Móvil**: Presiona el botón **'⏱️ Conteo (5s) + Grabar y Mover'** o **'🔴 Grabar Video'** dentro del visor de abajo para conceder permisos y comenzar.")
+    components.html(html_content, height=680)
+    
+    # 2. Botón alternativo para abrir en ventana emergente (Ideal para monitores secundarios en PC)
     component_code = f"""
-    <div style="font-family: system-ui, -apple-system, sans-serif; margin: 5px 0;">
+    <div style="font-family: system-ui, -apple-system, sans-serif; margin: 10px 0;">
         <button id="open-prompter-btn" style="
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white; border: none; padding: 14px 24px; border-radius: 10px;
-            font-weight: 700; font-size: 15px; cursor: pointer; width: 100%;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #94a3b8; border: 1px solid rgba(255,255,255,0.15); padding: 12px 20px; border-radius: 10px;
+            font-weight: 700; font-size: 14px; cursor: pointer; width: 100%;
             display: flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); transition: all 0.2s ease;
+            transition: all 0.2s ease;
         ">
-            🚀 Abrir Studio Teleprompter (Con Grabación de Video y Conteo 5s)
+            🖥️ Abrir en Ventana Independiente (Ideal para Monitores PC)
         </button>
         <script>
             const b64Data = "{b64_html}";
@@ -1113,7 +1129,7 @@ def render_teleprompter_button(narracion_limpia: str, titulo: str):
                         win.document.write(htmlText);
                         win.document.close();
                     }} else {{
-                        alert('Tu navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes o usa la opción desplegable de abajo.');
+                        alert('Tu navegador bloqueó la ventana emergente. Por favor usa el Visor Integrado de la página.');
                     }}
                 }} catch(e) {{
                     alert("Error al procesar Teleprompter: " + e.message);
@@ -1122,12 +1138,7 @@ def render_teleprompter_button(narracion_limpia: str, titulo: str):
         </script>
     </div>
     """
-    components.html(component_code, height=70)
-    
-    # Visor integrado alternativo por si el navegador móvil bloquea ventanas emergentes
-    with st.expander("👁️ O abrir Visor Integrado de Teleprompter en Pantalla Completa", expanded=False):
-        st.info("Presiona el botón '⏱️ Conteo (5s) + Grabar y Mover' o '🔴 Grabar Video' para iniciar la grabación.")
-        components.html(html_content, height=650)
+    components.html(component_code, height=60)
 
 # Mantener compatibilidad con la función anterior
 def generar_guion_youtube(analisis: dict) -> str:
