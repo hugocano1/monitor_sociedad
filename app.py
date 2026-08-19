@@ -894,11 +894,49 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                 return false;
             }}
 
+            const isVertical = box.classList.contains('mode-916') || (window.innerHeight > window.innerWidth);
+            
+            const audioConstraints = {{
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                sampleRate: 48000,
+                channelCount: 1
+            }};
+
             const tryConstraints = [
-                {{ video: {{ facingMode: 'user' }}, audio: true }},
-                {{ video: true, audio: true }},
-                {{ video: {{ facingMode: 'user' }} }},
-                {{ video: true }}
+                // 1. Full HD (1080p) con relación de aspecto explícita (9:16 vertical o 16:9 horizontal)
+                {{
+                    video: {{
+                        facingMode: 'user',
+                        width: {{ ideal: isVertical ? 1080 : 1920 }},
+                        height: {{ ideal: isVertical ? 1920 : 1080 }},
+                        aspectRatio: {{ ideal: isVertical ? (9/16) : (16/9) }},
+                        frameRate: {{ ideal: 30, max: 30 }}
+                    }},
+                    audio: audioConstraints
+                }},
+                // 2. HD (720p) con relación de aspecto
+                {{
+                    video: {{
+                        facingMode: 'user',
+                        width: {{ ideal: isVertical ? 720 : 1280 }},
+                        height: {{ ideal: isVertical ? 1280 : 720 }},
+                        aspectRatio: {{ ideal: isVertical ? (9/16) : (16/9) }},
+                        frameRate: {{ ideal: 30, max: 30 }}
+                    }},
+                    audio: audioConstraints
+                }},
+                // 3. Fallback inteligente con facingMode
+                {{
+                    video: {{ facingMode: 'user' }},
+                    audio: audioConstraints
+                }},
+                // 4. Fallback básico universal
+                {{
+                    video: true,
+                    audio: true
+                }}
             ];
 
             mediaStream = null;
@@ -1046,18 +1084,22 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 
         btnToggle.addEventListener('click', togglePlay);
 
-        // --- FUNCIONES DE GRABACIÓN MEDIARECORDER ---
+        // --- FUNCIONES DE GRABACIÓN MEDIARECORDER (SINCRONIZACIÓN CAPCUT & 9:16 / 16:9) ---
 
         function getSupportedMimeType() {{
             const types = [
+                'video/mp4;codecs=avc1.4d002a,mp4a.40.2',
                 'video/mp4;codecs=avc1,mp4a.40.2',
+                'video/mp4;codecs=avc1',
                 'video/mp4',
                 'video/webm;codecs=vp9,opus',
                 'video/webm;codecs=vp8,opus',
                 'video/webm'
             ];
             for (const t of types) {{
-                if (MediaRecorder.isTypeSupported(t)) return t;
+                if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {{
+                    return t;
+                }}
             }}
             return '';
         }}
@@ -1071,12 +1113,18 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 
             recordedChunks = [];
             const mimeType = getSupportedMimeType();
-            const options = mimeType ? {{ mimeType }} : undefined;
+            const options = {{
+                videoBitsPerSecond: 8000000,
+                audioBitsPerSecond: 128000
+            }};
+            if (mimeType) {{
+                options.mimeType = mimeType;
+            }}
 
             try {{
                 mediaRecorder = new MediaRecorder(mediaStream, options);
             }} catch(e) {{
-                console.error("Error al instanciar MediaRecorder:", e);
+                console.error("Error al instanciar MediaRecorder con opciones:", e);
                 try {{
                     mediaRecorder = new MediaRecorder(mediaStream);
                 }} catch(e2) {{
@@ -1091,7 +1139,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             }};
 
             mediaRecorder.onstop = () => {{
-                const type = mediaRecorder.mimeType || 'video/webm';
+                const type = mediaRecorder.mimeType || (getSupportedMimeType().includes('mp4') ? 'video/mp4' : 'video/webm');
                 lastRecordedBlob = new Blob(recordedChunks, {{ type }});
                 if (lastRecordedUrl) URL.revokeObjectURL(lastRecordedUrl);
                 lastRecordedUrl = URL.createObjectURL(lastRecordedBlob);
@@ -1100,7 +1148,8 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                 btnDownload.innerText = '💾 Descargar Video Grabado';
             }};
 
-            mediaRecorder.start(1000);
+            // Grabación continua SIN timeslice para generar un contenedor unificado sin discontinuidades PTS/DTS
+            mediaRecorder.start();
             isRecording = true;
             recSeconds = 0;
             updateRecTimerDisplay();
@@ -1120,7 +1169,9 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             isRecording = false;
             clearInterval(recTimer);
             try {{
-                mediaRecorder.stop();
+                if (mediaRecorder.state !== 'inactive') {{
+                    mediaRecorder.stop();
+                }}
             }} catch(e) {{
                 console.log("Error al detener MediaRecorder:", e);
             }}
@@ -1215,8 +1266,12 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             box.scrollTop = 0;
         }});
 
-        btnMode.addEventListener('click', () => {{
+        btnMode.addEventListener('click', async () => {{
             box.classList.toggle('mode-916');
+            if (mediaStream && !isRecording) {{
+                stopCamera();
+                await startCamera();
+            }}
         }});
 
         btnMirror.addEventListener('click', () => {{
