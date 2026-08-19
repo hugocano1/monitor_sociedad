@@ -57,13 +57,14 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   7. **Edición Interactiva de Guiones en UI y Teleprompter**: Guiones editables mediante `st.text_area` en el panel principal con botón `💾 Guardar Guion Editado en Firestore`. Además, adición del botón `✏️ Editar Texto` en la barra de controles del Teleprompter para modificar el texto en vivo en pantalla (`contenteditable="true"`).
   8. **Gestión de Cámara A Demanda & Ahorro de Batería**: Eliminación del encendido automático al cargar la página. El sensor de la cámara permanece 100% apagado por privacidad hasta que el usuario presione `📷 Activar Cámara`, `⏱️ Conteo (5s)` o `🔴 Grabar Video`. Adición del botón `🚫 Apagar Cámara` y desasignación automática de hardware al cerrar o cambiar de pestaña.
 
-### Sesión: 19 de Agosto de 2026 (v2.6)
-* **Objetivo**: Corrección de la relación de aspecto de video (forzar 9:16 vertical y 16:9 horizontal en Full HD / HD) y solución al desfase de audio/video y congelamiento de fotogramas al editar en CapCut.
+### Sesión: 19 de Agosto de 2026 (v3.0)
+* **Objetivo**: Refactorización integral del motor del Teleprompter a arquitectura Canvas CFR a 30 FPS, solución definitiva a la orientación vertical (9:16 real sin rotación horizontal ni zoom forzado), eliminación del congelamiento en CapCut e incorporación de indicadores numéricos en los sliders.
 * **Logros**:
-  1. **Resolución y Relación de Aspecto Real (1080p / 720p)**: Configuración jerárquica de `getUserMedia` en [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) con restricciones explícitas de `aspectRatio: 9/16` (1080x1920 / 720x1280) para Shorts/Reels y `aspectRatio: 16/9` (1920x1080 / 1280x720) para horizontal, eliminando la captura por defecto de 480x640 (3:4).
-  2. **Eliminación del Desfase y Lag en CapCut**: Supresión del parámetro `timeslice` (`mediaRecorder.start()`) para evitar la fragmentación desincronizada de micro-bloques PTS/DTS en WebKit/iOS. La grabación se procesa de forma contigua en un único contenedor MP4 limpio y atómico.
-  3. **Control de Bitrate y Audio 48 kHz**: Fijado de `videoBitsPerSecond: 8000000` (8.0 Mbps - estándar YouTube/Apple) y `audioBitsPerSecond: 128000` con frecuencia de muestreo de audio fijada en 48 kHz (`sampleRate: 48000`), garantizando nitidez cristalina en 1080p y fluidez total en editores NLE (CapCut, Premiere).
-  4. **Adaptabilidad Dinámica 16:9 / 9:16**: Reconfiguración instantánea del sensor de la cámara al alternar el botón `🖥️ 16:9 / 9:16` antes de grabar.
+  1. **Motor de Renderizado Canvas (CFR 30.00 FPS)**: Implementación de un pipeline en [app.py](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/app.py) que proyecta la cámara en un Canvas en memoria (`canvas.captureStream(30)`), generando un flujo continuo de 30 FPS constantes con H.264 / AAC 48 kHz.
+  2. **Eliminación Total de Zoom Artificial**: El lienzo extrae el encuadre 9:16 vertical abarcando el 100% de la altura del sensor de la cámara, previniendo el acercamiento forzado que producía el visor y devolviendo el campo de visión natural del iPhone.
+  3. **Compatibilidad Universal con CapCut**: Los videos grabados se indexan con marcas de tiempo atómicas continuas, evitando que CapCut se congele al primer segundo o desincronice el audio.
+  4. **Indicadores Numéricos Dinámicos**: Adición de etiquetas visuales en tiempo real para los controles de Velocidad (`Vel: 4x`, `Vel: 7x`, etc.) y Tamaño de Fuente (`Texto: 30px`, `Texto: 45px`, etc.).
+  5. **Selector Visual de Formato**: Botón interactivo `📱 Formato: 9:16` / `🖥️ Formato: 16:9` que ajusta simultáneamente la caja del guion y el lienzo de grabación.
 
 ---
 
@@ -81,4 +82,4 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
 - [x] **Pantalla Completa Universal iPhone via frameElement (v2.3)**: Completado.
 - [x] **Google News Realtime & Guiones Editables en UI/Prompter (v2.4)**: Completado.
 - [x] **Cámara A Demanda & Ahorro de Batería / Privacidad (v2.5)**: Completado.
-- [x] **Fix Relación de Aspecto 9:16/16:9 y Sincronización CapCut (v2.6)**: Completado.
+- [x] **Teleprompter Canvas Engine v3.0 (9:16 real, 0 zoom, CapCut CFR 30fps y Badges numéricos)**: Completado.

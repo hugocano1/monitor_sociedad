@@ -682,7 +682,7 @@ def extraer_narracion_limpia(guion_texto: str) -> str:
     return "\n\n".join(narracion) if narracion else guion_texto
 
 def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> str:
-    """Genera una aplicación web HTML5 independiente para Teleprompter con soporte de grabación de video y conteo regresivo de 5s."""
+    """Genera una aplicación web HTML5 independiente para Teleprompter con motor de renderizado Canvas (9:16 / 16:9 real) y grabación sin desfase."""
     parrafos_html = "".join([f"<p style='margin-bottom: 2rem;'>{html.escape(p)}</p>" for p in narracion_limpia.split("\n\n") if p.strip()])
     
     return f"""<!DOCTYPE html>
@@ -695,12 +695,11 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         body, html {{ width: 100%; height: 100%; overflow: hidden; background: #09090b; font-family: system-ui, -apple-system, sans-serif; color: #fff; touch-action: manipulation; }}
         
-        #webcam {{
+        /* Lienzo de renderizado de video en vivo (Sin Zoom forzado) */
+        #render-canvas {{
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            object-fit: cover; z-index: 1; transform: scaleX(-1);
-            -webkit-transform: scaleX(-1);
+            object-fit: cover; z-index: 1;
         }}
-        #webcam.no-mirror {{ transform: none; -webkit-transform: none; }}
         
         #overlay {{
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -718,14 +717,14 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         #prompter-box::-webkit-scrollbar {{ display: none; }}
         
         #prompter-box.mode-916 {{
-            width: 92vw; max-width: 420px;
-            border-left: 2px dashed rgba(37, 99, 235, 0.4);
-            border-right: 2px dashed rgba(37, 99, 235, 0.4);
+            width: 92vw; max-width: 440px;
+            border-left: 2px dashed rgba(37, 99, 235, 0.45);
+            border-right: 2px dashed rgba(37, 99, 235, 0.45);
         }}
         
         .script-content {{
-            font-size: 34px; font-weight: 700; line-height: 1.6;
-            text-align: center; color: #ffffff; text-shadow: 0 3px 12px rgba(0,0,0,0.95);
+            font-size: 30px; font-weight: 700; line-height: 1.65;
+            text-align: center; color: #ffffff; text-shadow: 0 3px 14px rgba(0,0,0,0.95);
             transition: font-size 0.2s ease; word-break: break-word;
         }}
         .script-content.mirrored {{
@@ -734,15 +733,15 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         
         #controls-bar {{
             position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
-            z-index: 100; background: rgba(18, 18, 24, 0.95); backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            z-index: 100; background: rgba(18, 18, 24, 0.96); backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.2); border-radius: 24px;
             padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.9); transition: opacity 0.4s ease;
-            width: 94vw; max-width: 900px; max-height: 50vh; overflow-y: auto;
+            width: 94vw; max-width: 920px; max-height: 50vh; overflow-y: auto;
         }}
         #controls-bar:hover, body.paused #controls-bar {{ opacity: 1; }}
-        body.playing #controls-bar {{ opacity: 0.4; }}
+        body.playing #controls-bar {{ opacity: 0.35; }}
 
         .btn {{
             background: #2563eb; color: white; border: none; padding: 10px 16px;
@@ -762,12 +761,21 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         .btn-sec {{ background: rgba(255,255,255,0.15); color: #fff; }}
         .btn-sec:hover {{ background: rgba(255,255,255,0.25); }}
 
-        .ctrl-group {{ display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; background: rgba(255,255,255,0.06); padding: 4px 10px; border-radius: 12px; }}
-        input[type="range"] {{ accent-color: #2563eb; cursor: pointer; height: 30px; }}
+        .ctrl-group {{
+            display: flex; align-items: center; gap: 6px; font-size: 12px;
+            color: #ddd; background: rgba(255,255,255,0.08); padding: 4px 10px;
+            border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+        }}
+        .badge-num {{
+            background: rgba(37,99,235,0.35); color: #93c5fd; padding: 2px 7px;
+            border-radius: 6px; font-weight: 800; font-size: 11px;
+            border: 1px solid rgba(59,130,246,0.4); min-width: 28px; text-align: center;
+        }}
+        input[type="range"] {{ accent-color: #2563eb; cursor: pointer; height: 28px; width: 80px; }}
 
         #rec-indicator {{
             position: fixed; top: 16px; right: 16px; z-index: 100;
-            background: rgba(220, 38, 38, 0.9); color: white; padding: 6px 14px;
+            background: rgba(220, 38, 38, 0.92); color: white; padding: 6px 14px;
             border-radius: 20px; font-size: 14px; font-weight: 800;
             display: none; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.6);
             backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -797,18 +805,11 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         }}
 
         body.is-fullscreen {{
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 99999999 !important;
-            background: #09090b !important;
+            position: fixed !important; top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            z-index: 99999999 !important; background: #09090b !important;
         }}
-
-        body.is-fullscreen #controls-bar {{
-            bottom: 20px !important;
-        }}
+        body.is-fullscreen #controls-bar {{ bottom: 20px !important; }}
 
         @keyframes pulse-dot {{ from {{ opacity: 0.3; transform: scale(0.8); }} to {{ opacity: 1; transform: scale(1.2); }} }}
         @keyframes pulse-rec {{ from {{ background: #dc2626; }} to {{ background: #7f1d1d; }} }}
@@ -818,6 +819,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             #controls-bar {{ bottom: 10px; padding: 8px; width: 96vw; gap: 5px; }}
             .btn {{ padding: 8px 10px; font-size: 12px; min-height: 42px; flex: 1 1 auto; }}
             .ctrl-group {{ flex: 1 1 45%; justify-content: space-between; font-size: 11px; }}
+            input[type="range"] {{ width: 60px; }}
             .script-content {{ font-size: 26px; }}
             #prompter-box {{ padding: 30vh 1rem 40vh; width: 96%; }}
             #countdown-number {{ font-size: 100px; }}
@@ -825,11 +827,16 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
     </style>
 </head>
 <body class="paused">
-    <video id="webcam" autoplay playsinline webkit-playsinline muted></video>
+    <!-- Video de captura oculto (solo usado como fuente para el Canvas) -->
+    <video id="hidden-video" autoplay playsinline webkit-playsinline muted style="display:none;"></video>
+    
+    <!-- Canvas de Renderizado Principal y Grabación (Asegura proporción exacta y 0 zoom) -->
+    <canvas id="render-canvas"></canvas>
+    
     <div id="overlay"></div>
     
     <div id="cam-status">
-        <span id="cam-status-msg">⚠️ Tu navegador no admite cámara en esta ventana. Usa el Visor Integrado.</span>
+        <span id="cam-status-msg">⚠️ Tu navegador no admite cámara en esta ventana.</span>
     </div>
 
     <div id="rec-indicator">
@@ -842,12 +849,12 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         <div style="font-size: 20px; color: #fff; font-weight: 700; margin-top: 15px;">Preparado... Iniciarás a hablar en breve</div>
     </div>
     
-    <div id="prompter-box">
+    <div id="prompter-box" class="mode-916">
         <div id="text-node" class="script-content">{parrafos_html}</div>
     </div>
     
     <div id="controls-bar">
-        <button id="btn-countdown-rec" class="btn btn-countdown">⏱️ Conteo (5s) + Grabar y Mover</button>
+        <button id="btn-countdown-rec" class="btn btn-countdown">⏱️ Conteo (5s) + Grabar</button>
         <button id="btn-toggle" class="btn btn-main">▶️ INICIAR SCROLL</button>
         <button id="btn-rec-manual" class="btn btn-rec">🔴 Grabar Video</button>
         <button id="btn-download" class="btn btn-download" style="display: none;">💾 Descargar Video</button>
@@ -855,26 +862,53 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         <div class="ctrl-group">
             <label>⚡ Vel:</label>
             <input type="range" id="speed" min="1" max="15" value="4">
+            <span id="val-speed" class="badge-num">4x</span>
         </div>
         
         <div class="ctrl-group">
             <label>🔠 Texto:</label>
             <input type="range" id="fontsize" min="18" max="60" value="30">
+            <span id="val-font" class="badge-num">30px</span>
         </div>
 
         <button id="btn-cam-toggle" class="btn btn-sec">📷 Activar Cámara</button>
-        <button id="btn-mode" class="btn btn-sec">🖥️ 16:9 / 9:16</button>
-        <button id="btn-mirror" class="btn btn-sec">🪞 Espejo</button>
+        <button id="btn-mode" class="btn btn-sec">📱 Formato: 9:16</button>
+        <button id="btn-mirror" class="btn btn-sec">🪞 Espejo: ON</button>
         <button id="btn-reset" class="btn btn-sec">🔄 Inicio</button>
         <button id="btn-edit" class="btn btn-sec">✏️ Editar Texto</button>
         <button id="btn-fullscreen" class="btn btn-sec">⛶ Pantalla Completa</button>
     </div>
 
     <script>
-        const video = document.getElementById('webcam');
+        const video = document.getElementById('hidden-video');
+        const canvas = document.getElementById('render-canvas');
+        const ctx = canvas.getContext('2d');
+        
         const camStatus = document.getElementById('cam-status');
         const camStatusMsg = document.getElementById('cam-status-msg');
         const btnCamToggle = document.getElementById('btn-cam-toggle');
+        const btnMode = document.getElementById('btn-mode');
+        const btnMirror = document.getElementById('btn-mirror');
+        
+        const box = document.getElementById('prompter-box');
+        const textNode = document.getElementById('text-node');
+        const btnToggle = document.getElementById('btn-toggle');
+        const btnCountdownRec = document.getElementById('btn-countdown-rec');
+        const btnRecManual = document.getElementById('btn-rec-manual');
+        const btnDownload = document.getElementById('btn-download');
+        const recIndicator = document.getElementById('rec-indicator');
+        const recTimerText = document.getElementById('rec-timer-text');
+        const countdownOverlay = document.getElementById('countdown-overlay');
+        const countdownNumber = document.getElementById('countdown-number');
+        
+        const speedInput = document.getElementById('speed');
+        const fontInput = document.getElementById('fontsize');
+        const valSpeed = document.getElementById('val-speed');
+        const valFont = document.getElementById('val-font');
+        
+        const btnReset = document.getElementById('btn-reset');
+        const btnEdit = document.getElementById('btn-edit');
+        const btnFS = document.getElementById('btn-fullscreen');
         
         let mediaStream = null;
         let mediaRecorder = null;
@@ -884,9 +918,90 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         let recSeconds = 0;
         let lastRecordedBlob = null;
         let lastRecordedUrl = null;
+        
+        let isVertical = true; // Por defecto vertical 9:16 para Shorts / Reels
+        let isMirrored = true;
+        let renderLoopId = null;
+        let cameraActive = false;
+
+        // --- MOTOR DE RENDERIZADO CANVAS (SIN ZOOM & 9:16 / 16:9 EXACTO) ---
+        function renderCanvasLoop() {{
+            if (!cameraActive) return;
+
+            const vw = video.videoWidth || 1920;
+            const vh = video.videoHeight || 1080;
+
+            if (isVertical) {{
+                // 9:16 Vertical Exacto (1080 x 1920)
+                if (canvas.width !== 1080 || canvas.height !== 1920) {{
+                    canvas.width = 1080;
+                    canvas.height = 1920;
+                }}
+
+                // Extraer el encuadre vertical centrado utilizando el 100% de la altura del sensor
+                // Esto elimina cualquier zoom artificial y preserva el campo de visión natural.
+                let sw, sh, sx, sy;
+                if (vw >= vh) {{
+                    // Sensor horizontal estándar de iPhone (1920x1080)
+                    sh = vh;
+                    sw = vh * (9 / 16);
+                    sx = (vw - sw) / 2;
+                    sy = 0;
+                }} else {{
+                    // Sensor vertical nativo
+                    sw = vw;
+                    sh = vw * (16 / 9);
+                    sx = 0;
+                    sy = (vh - sh) / 2;
+                }}
+
+                ctx.save();
+                if (isMirrored) {{
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                }}
+                ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }} else {{
+                // 16:9 Horizontal Exacto (1920 x 1080)
+                if (canvas.width !== 1920 || canvas.height !== 1080) {{
+                    canvas.width = 1920;
+                    canvas.height = 1080;
+                }}
+
+                let sw, sh, sx, sy;
+                if (vw >= vh) {{
+                    sw = vw;
+                    sh = vw * (9 / 16);
+                    sx = 0;
+                    sy = (vh - sh) / 2;
+                    if (sh > vh) {{
+                        sh = vh;
+                        sw = vh * (16 / 9);
+                        sx = (vw - sw) / 2;
+                        sy = 0;
+                    }}
+                }} else {{
+                    sh = vh;
+                    sw = vh * (16 / 9);
+                    sx = (vw - sw) / 2;
+                    sy = 0;
+                }}
+
+                ctx.save();
+                if (isMirrored) {{
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                }}
+                ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }}
+
+            renderLoopId = requestAnimationFrame(renderCanvasLoop);
+        }}
 
         async function startCamera() {{
-            if (mediaStream) return true; // Ya está encendida
+            if (mediaStream) return true;
 
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
                 camStatus.style.display = 'flex';
@@ -894,8 +1009,6 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                 return false;
             }}
 
-            const isVertical = box.classList.contains('mode-916') || (window.innerHeight > window.innerWidth);
-            
             const audioConstraints = {{
                 echoCancellation: true,
                 noiseSuppression: true,
@@ -905,38 +1018,13 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             }};
 
             const tryConstraints = [
-                // 1. Full HD (1080p) con relación de aspecto explícita (9:16 vertical o 16:9 horizontal)
-                {{
-                    video: {{
-                        facingMode: 'user',
-                        width: {{ ideal: isVertical ? 1080 : 1920 }},
-                        height: {{ ideal: isVertical ? 1920 : 1080 }},
-                        aspectRatio: {{ ideal: isVertical ? (9/16) : (16/9) }},
-                        frameRate: {{ ideal: 30, max: 30 }}
-                    }},
-                    audio: audioConstraints
-                }},
-                // 2. HD (720p) con relación de aspecto
-                {{
-                    video: {{
-                        facingMode: 'user',
-                        width: {{ ideal: isVertical ? 720 : 1280 }},
-                        height: {{ ideal: isVertical ? 1280 : 720 }},
-                        aspectRatio: {{ ideal: isVertical ? (9/16) : (16/9) }},
-                        frameRate: {{ ideal: 30, max: 30 }}
-                    }},
-                    audio: audioConstraints
-                }},
-                // 3. Fallback inteligente con facingMode
-                {{
-                    video: {{ facingMode: 'user' }},
-                    audio: audioConstraints
-                }},
-                // 4. Fallback básico universal
-                {{
-                    video: true,
-                    audio: true
-                }}
+                // 1. Full HD de alta calidad
+                {{ video: {{ facingMode: 'user', width: {{ ideal: 1920 }}, height: {{ ideal: 1080 }}, frameRate: {{ ideal: 30 }} }}, audio: audioConstraints }},
+                // 2. HD
+                {{ video: {{ facingMode: 'user', width: {{ ideal: 1280 }}, height: {{ ideal: 720 }} }}, audio: audioConstraints }},
+                // 3. Fallback genérico
+                {{ video: {{ facingMode: 'user' }}, audio: audioConstraints }},
+                {{ video: true, audio: true }}
             ];
 
             mediaStream = null;
@@ -961,6 +1049,10 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             }} catch(e) {{
                 console.log("Error en video.play():", e);
             }}
+
+            cameraActive = true;
+            renderCanvasLoop();
+
             camStatus.style.display = 'none';
             btnCamToggle.innerText = '🚫 Apagar Cámara';
             btnCamToggle.style.background = '#dc2626';
@@ -968,6 +1060,11 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         }}
 
         function stopCamera() {{
+            cameraActive = false;
+            if (renderLoopId) {{
+                cancelAnimationFrame(renderLoopId);
+                renderLoopId = null;
+            }}
             if (mediaStream) {{
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
@@ -975,6 +1072,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             if (video.srcObject) {{
                 video.srcObject = null;
             }}
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             camStatus.style.display = 'none';
             btnCamToggle.innerText = '📷 Activar Cámara';
             btnCamToggle.style.background = '';
@@ -990,7 +1088,6 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 
         btnCamToggle.addEventListener('click', toggleCamera);
 
-        // Limpiar cámara al cerrar la pestaña o cambiar de app
         document.addEventListener('visibilitychange', () => {{
             if (document.hidden && mediaStream && !isRecording) {{
                 stopCamera();
@@ -1000,25 +1097,35 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             stopCamera();
         }});
 
-        const box = document.getElementById('prompter-box');
-        const textNode = document.getElementById('text-node');
-        const btnToggle = document.getElementById('btn-toggle');
-        const btnCountdownRec = document.getElementById('btn-countdown-rec');
-        const btnRecManual = document.getElementById('btn-rec-manual');
-        const btnDownload = document.getElementById('btn-download');
-        const recIndicator = document.getElementById('rec-indicator');
-        const recTimerText = document.getElementById('rec-timer-text');
-        const countdownOverlay = document.getElementById('countdown-overlay');
-        const countdownNumber = document.getElementById('countdown-number');
-        
-        const speedInput = document.getElementById('speed');
-        const fontInput = document.getElementById('fontsize');
-        const btnMode = document.getElementById('btn-mode');
-        const btnMirror = document.getElementById('btn-mirror');
-        const btnReset = document.getElementById('btn-reset');
-        const btnEdit = document.getElementById('btn-edit');
-        const btnFS = document.getElementById('btn-fullscreen');
+        // --- CONTROLES DE FORMATO Y ESPEJO ---
+        btnMode.addEventListener('click', () => {{
+            isVertical = !isVertical;
+            if (isVertical) {{
+                btnMode.innerText = '📱 Formato: 9:16';
+                box.classList.add('mode-916');
+            }} else {{
+                btnMode.innerText = '🖥️ Formato: 16:9';
+                box.classList.remove('mode-916');
+            }}
+        }});
 
+        btnMirror.addEventListener('click', () => {{
+            isMirrored = !isMirrored;
+            btnMirror.innerText = isMirrored ? '🪞 Espejo: ON' : '🪞 Espejo: OFF';
+            textNode.classList.toggle('mirrored', isMirrored);
+        }});
+
+        // --- INDICADORES DINÁMICOS DE SLIDERS ---
+        speedInput.addEventListener('input', (e) => {{
+            valSpeed.innerText = e.target.value + 'x';
+        }});
+
+        fontInput.addEventListener('input', (e) => {{
+            valFont.innerText = e.target.value + 'px';
+            textNode.style.fontSize = e.target.value + 'px';
+        }});
+
+        // --- TELEPROMPTER SCROLL ---
         let isPlaying = false;
         let animId = null;
         let isEditingText = false;
@@ -1047,7 +1154,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
 
         function scrollStep() {{
             if (!isPlaying) return;
-            box.scrollTop += parseFloat(speedInput.value) * 0.4;
+            box.scrollTop += parseFloat(speedInput.value) * 0.45;
             animId = requestAnimationFrame(scrollStep);
         }}
 
@@ -1083,10 +1190,10 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         }}
 
         btnToggle.addEventListener('click', togglePlay);
+        btnReset.addEventListener('click', () => {{ box.scrollTop = 0; }});
 
-        // --- FUNCIONES DE GRABACIÓN MEDIARECORDER (SINCRONIZACIÓN CAPCUT & 9:16 / 16:9) ---
-
-        function getSupportedMimeType() {{
+        // --- GRABACIÓN DESDE EL CANVAS (CFR 30 FPS + CAPCUT COMPATIBLE) ---
+        function getOptimalMimeType() {{
             const types = [
                 'video/mp4;codecs=avc1.4d002a,mp4a.40.2',
                 'video/mp4;codecs=avc1,mp4a.40.2',
@@ -1112,7 +1219,17 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             if (!mediaStream) return;
 
             recordedChunks = [];
-            const mimeType = getSupportedMimeType();
+            
+            // Capturar flujo directo del Canvas a 30 FPS constantes
+            const canvasStream = canvas.captureStream(30);
+            
+            // Añadir pista de audio del micrófono
+            const audioTracks = mediaStream.getAudioTracks();
+            if (audioTracks.length > 0) {{
+                canvasStream.addTrack(audioTracks[0]);
+            }}
+
+            const mimeType = getOptimalMimeType();
             const options = {{
                 videoBitsPerSecond: 8000000,
                 audioBitsPerSecond: 128000
@@ -1122,11 +1239,11 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             }}
 
             try {{
-                mediaRecorder = new MediaRecorder(mediaStream, options);
+                mediaRecorder = new MediaRecorder(canvasStream, options);
             }} catch(e) {{
-                console.error("Error al instanciar MediaRecorder con opciones:", e);
+                console.error("Error al crear MediaRecorder:", e);
                 try {{
-                    mediaRecorder = new MediaRecorder(mediaStream);
+                    mediaRecorder = new MediaRecorder(canvasStream);
                 }} catch(e2) {{
                     return console.warn("Grabación no soportada en este entorno.");
                 }}
@@ -1139,7 +1256,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             }};
 
             mediaRecorder.onstop = () => {{
-                const type = mediaRecorder.mimeType || (getSupportedMimeType().includes('mp4') ? 'video/mp4' : 'video/webm');
+                const type = mediaRecorder.mimeType || (getOptimalMimeType().includes('mp4') ? 'video/mp4' : 'video/webm');
                 lastRecordedBlob = new Blob(recordedChunks, {{ type }});
                 if (lastRecordedUrl) URL.revokeObjectURL(lastRecordedUrl);
                 lastRecordedUrl = URL.createObjectURL(lastRecordedBlob);
@@ -1148,7 +1265,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                 btnDownload.innerText = '💾 Descargar Video Grabado';
             }};
 
-            // Grabación continua SIN timeslice para generar un contenedor unificado sin discontinuidades PTS/DTS
+            // Grabación continua sin timeslice -> genera contenedor atómico sin freeze en CapCut
             mediaRecorder.start();
             isRecording = true;
             recSeconds = 0;
@@ -1195,9 +1312,7 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         }});
 
         // --- CONTEO REGRESIVO DE 5 SEGUNDOS ---
-
         btnCountdownRec.addEventListener('click', async () => {{
-            // Intentar encender cámara por gesto de usuario en iOS
             await startCamera();
 
             countdownOverlay.style.display = 'flex';
@@ -1223,7 +1338,6 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
         }});
 
         // --- DESCARGAR / GUARDAR VIDEO ---
-
         btnDownload.addEventListener('click', async () => {{
             if (!lastRecordedBlob) return alert('No hay grabación disponible.');
             
@@ -1231,22 +1345,20 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
             const ext = isMp4 ? 'mp4' : 'webm';
             const filename = `teleprompter_rec_${{Date.now()}}.${{ext}}`;
 
-            // En celulares, probar Web Share API primero para guardar directo en la galería / fotos
             const file = new File([lastRecordedBlob], filename, {{ type: lastRecordedBlob.type }});
             if (navigator.canShare && navigator.canShare({{ files: [file] }})) {{
                 try {{
                     await navigator.share({{
                         files: [file],
                         title: 'Grabación Teleprompter',
-                        text: 'Video de Teleprompter grabado en Studio Teleprompter'
+                        text: 'Video grabado con Studio Teleprompter'
                     }});
                     return;
                 }} catch(shareErr) {{
-                    console.log("Compartir cancelado o no soportado, descargando archivo directamente...", shareErr);
+                    console.log("Compartir cancelado, descargando archivo...", shareErr);
                 }}
             }}
 
-            // Descarga directa tradicional en navegador / PC
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = lastRecordedUrl;
@@ -1257,28 +1369,8 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                 document.body.removeChild(a);
             }}, 200);
         }});
-        
-        fontInput.addEventListener('input', (e) => {{
-            textNode.style.fontSize = e.target.value + 'px';
-        }});
 
-        btnReset.addEventListener('click', () => {{
-            box.scrollTop = 0;
-        }});
-
-        btnMode.addEventListener('click', async () => {{
-            box.classList.toggle('mode-916');
-            if (mediaStream && !isRecording) {{
-                stopCamera();
-                await startCamera();
-            }}
-        }});
-
-        btnMirror.addEventListener('click', () => {{
-            textNode.classList.toggle('mirrored');
-        }});
-
-        // --- PANTALLA COMPLETA UNIVERSAL (INCLUIDO IPHONE Y MÓVILES) ---
+        // --- PANTALLA COMPLETA UNIVERSAL ---
         btnFS.addEventListener('click', () => {{
             const isFS = document.body.classList.toggle('is-fullscreen');
 
@@ -1336,8 +1428,10 @@ def generar_html_teleprompter_standalone(narracion_limpia: str, titulo: str) -> 
                 btnCountdownRec.click();
             }} else if (e.code === 'ArrowUp') {{
                 speedInput.value = Math.min(15, parseInt(speedInput.value) + 1);
+                valSpeed.innerText = speedInput.value + 'x';
             }} else if (e.code === 'ArrowDown') {{
                 speedInput.value = Math.max(1, parseInt(speedInput.value) - 1);
+                valSpeed.innerText = speedInput.value + 'x';
             }} else if (e.code === 'KeyF') {{
                 btnFS.click();
             }}
