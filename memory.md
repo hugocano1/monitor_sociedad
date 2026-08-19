@@ -65,6 +65,7 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
   3. **Compatibilidad Universal con CapCut**: Los videos grabados se indexan con marcas de tiempo atómicas continuas, evitando que CapCut se congele al primer segundo o desincronice el audio.
   4. **Indicadores Numéricos Dinámicos**: Adición de etiquetas visuales en tiempo real para los controles de Velocidad (`Vel: 4x`, `Vel: 7x`, etc.) y Tamaño de Fuente (`Texto: 30px`, `Texto: 45px`, etc.).
   5. **Selector Visual de Formato**: Botón interactivo `📱 Formato: 9:16` / `🖥️ Formato: 16:9` que ajusta simultáneamente la caja del guion y el lienzo de grabación.
+  6. **Blueprint SaaS Comercial v2.0 (CreatorStudio AI)**: Consolidación en [CREATOR_STUDIO_AI_SAAS_BLUEPRINT.md](file:///C:/Users/Hugoalx/Desktop/monitor_sociedad/CREATOR_STUDIO_AI_SAAS_BLUEPRINT.md) de la arquitectura All-in-One Multi-Tenant con Supabase RLS, configuración de temas/fuentes personalizadas por creador, Brand Kit y el motor de auto-postproducción "CapCut Ligero" (subtítulos dinámicos kinetic, auto jump-cuts y renderizado local FFmpeg a $0 costo de nube).
 
 ---
 
@@ -83,3 +84,4 @@ El sistema procesa reportes y documentos extensos sobre coyunturas económicas, 
 - [x] **Google News Realtime & Guiones Editables en UI/Prompter (v2.4)**: Completado.
 - [x] **Cámara A Demanda & Ahorro de Batería / Privacidad (v2.5)**: Completado.
 - [x] **Teleprompter Canvas Engine v3.0 (9:16 real, 0 zoom, CapCut CFR 30fps y Badges numéricos)**: Completado.
+- [x] **Blueprint SaaS Multi-Tenant v2.0 (Temas Custom & Auto-Edición CapCut Ligero)**: Completado.
